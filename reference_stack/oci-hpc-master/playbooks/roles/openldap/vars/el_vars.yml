@@ -1,0 +1,18 @@
+---
+# vars file for openldap
+
+openldap_packages:
+  - openldap-servers
+  - openldap-clients
+  - rsync
+
+openldap_packages_ol8:
+  - openldap-2.4.46-18.el8.x86_64
+  - openldap-clients-2.4.46-18.el8.x86_64
+  - rsync
+
+openldap_default_user: ldap
+openldap_default_group: ldap
+
+openldap_server_conf_path: /etc/openldap/slapd.d
+openldap_server_defaults_file: /etc/sysconfig/slapd

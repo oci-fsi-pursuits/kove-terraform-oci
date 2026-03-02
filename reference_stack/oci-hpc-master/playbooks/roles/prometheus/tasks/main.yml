@@ -1,0 +1,8 @@
+- include_tasks: setup_prometheus.yml
+  when: (initial | default(false) | bool) and not (destroy | default(false) | bool)
+
+- include_tasks: create_target.yml
+  when: not (destroy | default(false) | bool)
+
+- include_tasks: cleanup_targets.yml
+  when: destroy | default(false) | bool

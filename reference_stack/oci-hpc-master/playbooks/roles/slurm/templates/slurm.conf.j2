@@ -1,0 +1,86 @@
+{% set controller = hostvars[groups['controller'][0]]['ansible_fqdn'].split('.') %}
+SlurmctldHost={{ controller[0] }}
+{% if (groups['slurm_backup']| length ) > 0 %}
+SlurmctldHost={{ hostvars[groups['slurm_backup'][0]]['ansible_fqdn'].split('.')[0] }}
+{% endif %}
+MpiDefault=none
+ProctrackType=proctrack/cgroup
+ReturnToService=1
+SlurmctldPidFile=/var/run/slurmctld.pid
+SlurmctldPort=6817
+SlurmdPidFile=/var/run/slurmd.pid
+SlurmdPort=6818
+SlurmdSpoolDir=/var/spool/slurmd
+SlurmUser=slurm
+{% if pyxis|bool or healthchecks|bool%}
+Prolog={{slurm_conf_path}}/prolog.d/*
+SchedulerParameters=nohold_on_prolog_fail
+{% endif %}
+SlurmctldLogFile=/var/log/slurm/slurmctld.log
+SlurmdLogFile=/var/log/slurm/slurmd.log
+StateSaveLocation={{ slurm_nfs_path }}/spool/slurm
+SwitchType=switch/none
+TaskPlugin=task/affinity,task/cgroup
+PrologFlags=contain,serial
+InactiveLimit=0
+KillWait=30
+MinJobAge=300
+SlurmctldTimeout=300
+SlurmdTimeout=600
+Waittime=0
+GresTypes=gpu
+SchedulerType=sched/backfill
+SelectType=select/cons_tres
+SelectTypeParameters=CR_Core_Memory
+AccountingStorageHost={{ controller[0] }}
+AccountingStorageType=accounting_storage/slurmdbd
+AccountingStoreFlags=job_comment
+ClusterName=cluster
+JobAcctGatherFrequency=30
+JobAcctGatherType=jobacct_gather/linux
+SlurmctldDebug=info
+SlurmdDebug=info
+EnforcePartLimits=NO
+PropagateResourceLimitsExcept=MEMLOCK
+CommunicationParameters=block_null_hash
+TopologyPlugin=topology/tree
+TopologyParam=SwitchAsNodeRank
+TreeWidth=2048
+SlurmctldParameters=enable_configless
+MaxNodeCount=10000
+UnkillableStepTimeout=128
+AuthAltTypes=auth/jwt
+AuthAltParameters=jwt_key={{ slurm_nfs_path }}/spool/slurm/jwt_hs256.key
+{% if healthchecks|bool %}
+HealthCheckProgram={{slurm_conf_path}}/prolog.d/healthchecks.sh
+HealthCheckInterval=300
+HealthCheckNodeState=IDLE,CYCLE
+{% endif %}
+{% if sacct_limits|bool %}
+AccountingStorageTRES=gres/gpu
+AccountingStorageEnforce=limits,associations,qos,safe
+JobCompType=jobcomp/none
+TrackWckey=no
+{% endif %}
+
+{% for partition in queues %}
+{% for instance in partition.instance_types %}
+Nodeset={{instance.name}} Feature={{instance.name}}
+{% endfor %}
+{% endfor %}
+
+{% for partition in queues %}
+{% if partition.default  %}
+{% set nodesList = [] %}
+{% for instance in partition.instance_types %}
+{{ nodesList.append(instance.name)}}
+{%- endfor %}
+PartitionName={{partition.name}} Nodes={{nodesList|join(',')}} Default=YES
+{% else %}
+{% set nodesList = [] %}
+{% for instance in partition.instance_types %}
+{{ nodesList.append(instance.name)}}
+{%- endfor %}
+PartitionName={{partition.name}} Nodes={{nodesList|join(',')}} Default=NO
+{% endif %}
+{% endfor %}

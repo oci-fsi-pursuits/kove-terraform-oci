@@ -14,7 +14,16 @@ terraform {
       source  = "hashicorp/time"
       version = "~> 0.9"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
   }
+}
+
+# Terraform-generated SSH key for head->BM (oci-hpc pattern). ED25519 keeps user_data smaller.
+resource "tls_private_key" "cluster_ssh" {
+  algorithm = "ED25519"
 }
 
 provider "oci" {
@@ -238,8 +247,9 @@ EOT
     extra_vars_b64      = base64encode(local.extra_vars_yaml)
     rhsm_username_b64   = base64encode(var.rhsm_username)
     rhsm_password_b64   = base64encode(var.rhsm_password)
-    bm_private_ips_csv  = local.bm_private_ips_csv
-    ssh_private_key_b64 = var.ssh_private_key != "" ? base64encode(var.ssh_private_key) : ""
+    bm_private_ips_csv       = local.bm_private_ips_csv
+    ssh_private_key_b64      = var.ssh_private_key != "" ? base64encode(var.ssh_private_key) : ""
+    cluster_private_key_b64  = base64encode(tls_private_key.cluster_ssh.private_key_openssh)
   } : {}
 }
 
@@ -273,7 +283,8 @@ resource "oci_core_instance" "head_node" {
   }
 
   metadata = merge(
-    { ssh_authorized_keys = var.ssh_public_key },
+    # User key first (so you can SSH to head); then Terraform-generated key (for head->BM and provisioning)
+    { ssh_authorized_keys = "${trimspace(var.ssh_public_key)}\n${tls_private_key.cluster_ssh.public_key_openssh}" },
     var.run_ansible_from_head ? { user_data = base64encode(templatefile("${path.module}/scripts/cloud_init_bootstrap.yaml.tpl", { bootstrap_script_b64 = base64encode(templatefile("${path.module}/scripts/head_bootstrap.sh.tpl", local.bootstrap_template_vars)) })) } : {}
   )
 }
@@ -301,7 +312,7 @@ resource "oci_core_instance_configuration" "bm_cluster" {
       }
 
       metadata = {
-        ssh_authorized_keys = var.ssh_public_key
+        ssh_authorized_keys = "${trimspace(var.ssh_public_key)}\n${tls_private_key.cluster_ssh.public_key_openssh}"
       }
 
       agent_config {
