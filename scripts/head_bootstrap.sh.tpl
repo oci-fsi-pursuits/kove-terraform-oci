@@ -2,11 +2,11 @@
 set -e
 LOG=/var/log/oci-hpc-ansible-bootstrap.log
 mkdir -p /var/log
-echo "$(date) Bootstrap: started (90s)" | tee -a "$LOG"
+echo "$(date) B: start 90s" | tee -a "$LOG"
 
 do_bootstrap() {
   exec >> "$LOG" 2>&1
-  echo "$(date) Bootstrap: start"
+  echo "$(date) B: go"
 
   INSTANCE_POOL_ID="${instance_pool_id}"
   COMPARTMENT_ID="${compartment_id}"
@@ -20,7 +20,6 @@ do_bootstrap() {
   RHSM_PASS_B64="${rhsm_password_b64}"
   BM_PRIVATE_IPS_CSV="${bm_private_ips_csv}"
   SSH_PRIVATE_KEY_B64="${ssh_private_key_b64}"
-  CLUSTER_PRIVATE_KEY_B64="${cluster_private_key_b64}"
 
   export PATH="/usr/local/bin:/usr/bin:$PATH"
   export OCI_CLI_AUTH=instance_principal
@@ -37,16 +36,13 @@ do_bootstrap() {
     chown -R "$_u:$_u" "$_d" 2>/dev/null || true
   done
 
-  KEY_B64="$SSH_PRIVATE_KEY_B64"
-  [ -z "$KEY_B64" ] && KEY_B64="$CLUSTER_PRIVATE_KEY_B64"
-  if [ -n "$KEY_B64" ]; then
-    echo "$(date) Bootstrap: SSH key for BM..."
+  if [ -n "$SSH_PRIVATE_KEY_B64" ]; then
     for _u in root "$HEAD_SSH_USER"; do
       [ -z "$_u" ] && continue
       _sshdir="/home/$_u/.ssh"
       [ "$_u" = "root" ] && _sshdir="/root/.ssh"
       mkdir -p "$_sshdir"
-      echo "$KEY_B64" | base64 -d > "$_sshdir/id_rsa"
+      echo "$SSH_PRIVATE_KEY_B64" | base64 -d > "$_sshdir/id_rsa"
       chmod 600 "$_sshdir/id_rsa"
       chown -R "$_u:$_u" "$_sshdir" 2>/dev/null || true
     done
@@ -56,21 +52,21 @@ do_bootstrap() {
     RHSM_USER=$(echo "$RHSM_USER_B64" | base64 -d 2>/dev/null)
     RHSM_PASS=$(echo "$RHSM_PASS_B64" | base64 -d 2>/dev/null)
     if [ -n "$RHSM_USER" ] && [ -n "$RHSM_PASS" ]; then
-      echo "$(date) Bootstrap: RHSM..."
+      echo "$(date) B: RHSM..."
       subscription-manager register --username "$RHSM_USER" --password "$RHSM_PASS" --auto-attach --force 2>/dev/null || true
       subscription-manager release --set=8.8 2>/dev/null || true
       subscription-manager repos --enable=rhel-8-for-x86_64-baseos-rpms --enable=rhel-8-for-x86_64-appstream-rpms 2>/dev/null || true
     fi
   else
-    echo "$(date) Bootstrap: skip RHSM (OL or no vars)"
+    echo "$(date) B: skip RHSM"
   fi
 
-  echo "$(date) Bootstrap: packages..."
+  echo "$(date) B: pkg..."
   dnf install -y python3 python3-pip jq unzip || yum install -y python3 python3-pip jq unzip || true
-  echo "$(date) Bootstrap: pip..."
+  echo "$(date) B: pip..."
   pip3 install --break-system-packages ansible oci-cli 2>/dev/null || pip3 install ansible oci-cli 2>/dev/null || true
 
-  echo "$(date) Bootstrap: extract zip..."
+  echo "$(date) B: zip..."
   mkdir -p "$ANSIBLE_DIR"
   echo "$PAYLOAD_B64" | base64 -d > /tmp/playbooks.zip
   if command -v unzip >/dev/null 2>&1; then
@@ -78,29 +74,29 @@ do_bootstrap() {
   elif command -v python3 >/dev/null 2>&1; then
     python3 -c "import zipfile; zipfile.ZipFile('/tmp/playbooks.zip','r').extractall('$ANSIBLE_DIR')"
   else
-    echo "$(date) Bootstrap: ERROR need unzip or python3" >&2
+    echo "$(date) B: need unzip" >&2
     exit 1
   fi
   rm -f /tmp/playbooks.zip
   echo "$EXTRA_VARS_B64" | base64 -d > "$ANSIBLE_DIR/extra_vars.yml"
 
   if [ -z "$BM_PRIVATE_IPS_CSV" ]; then
-    echo "$(date) Bootstrap: wait pool $BM_COUNT (45m)..."
+    echo "$(date) B: wait pool $BM_COUNT..."
     for i in $(seq 1 90); do
       N=$(oci compute-management instance-pool list-instances --instance-pool-id "$INSTANCE_POOL_ID" --compartment-id "$COMPARTMENT_ID" --all 2>/dev/null | jq -r '.data | length' 2>/dev/null || echo "0")
       N=$${N:-0}
       if [ "$${N}" -eq "$BM_COUNT" ] 2>/dev/null; then
-        echo "$(date) Bootstrap: found $BM_COUNT"
+        echo "$(date) B: found $BM_COUNT"
         break
       fi
-      echo "$(date) Bootstrap: $${N}/$BM_COUNT..."
+      echo "$(date) B: $${N}/$BM_COUNT..."
       sleep 30
     done
   else
-    echo "$(date) Bootstrap: TF BM IPs"
+    echo "$(date) B: TF IPs"
   fi
 
-  echo "$(date) Bootstrap: IPs..."
+  echo "$(date) B: inv..."
   mkdir -p "$ANSIBLE_DIR/inventory"
   HEAD_IP=$(hostname -I | awk '{print $1}')
   echo "[head]
@@ -117,7 +113,7 @@ head-node ansible_host=$HEAD_IP ansible_user=$HEAD_SSH_USER ansible_connection=l
       i=$((i+1))
     done
     BM_ADDED=$((i-1))
-    echo "$(date) Bootstrap: +$BM_ADDED BM (TF)" >> "$LOG"
+    echo "$(date) B: +$BM_ADDED BM" >> "$LOG"
   else
     i=1
     for inst_id in $(oci compute-management instance-pool list-instances --instance-pool-id "$INSTANCE_POOL_ID" --compartment-id "$COMPARTMENT_ID" --all --query 'data[*].instanceId' --raw-output 2>/dev/null); do
@@ -143,13 +139,13 @@ head-node ansible_host=$HEAD_IP ansible_user=$HEAD_SSH_USER ansible_connection=l
         echo "bm-node-$i ansible_host=$PRIV_IP ansible_user=$SSH_USER" >> "$ANSIBLE_DIR/inventory/hosts"
         i=$((i+1))
       else
-        echo "$(date) Bootstrap: WARN no IP $inst_id" >> "$LOG"
+        echo "$(date) B: no IP $inst_id" >> "$LOG"
       fi
     done
     BM_ADDED=$((i-1))
-    echo "$(date) Bootstrap: +$BM_ADDED BM" >> "$LOG"
+    echo "$(date) B: +$BM_ADDED BM" >> "$LOG"
     if [ "$BM_ADDED" -eq 0 ]; then
-      echo "$(date) Bootstrap: WARN [bm] empty" >> "$LOG"
+      echo "$(date) B: [bm] empty" >> "$LOG"
     fi
   fi
 
@@ -157,14 +153,14 @@ head-node ansible_host=$HEAD_IP ansible_user=$HEAD_SSH_USER ansible_connection=l
 head
 bm" >> "$ANSIBLE_DIR/inventory/hosts"
 
-  echo "$(date) Bootstrap: Ansible..."
+  echo "$(date) B: Ansible..."
   cd "$ANSIBLE_DIR"
   export ANSIBLE_HOST_KEY_CHECKING=False
   ANSIBLE_PLAYBOOK=$(command -v ansible-playbook 2>/dev/null || echo "/usr/local/bin/ansible-playbook")
   $ANSIBLE_PLAYBOOK -i inventory/hosts configure-rhel-rdma.yml -e @extra_vars.yml || true
 
-  echo "$(date) Bootstrap: done"
+  echo "$(date) B: done"
 }
 
 ( nohup bash -c "$(declare -f do_bootstrap); sleep 90; do_bootstrap" >> "$LOG" 2>&1 & )
-echo "$(date) Bootstrap: 90s $LOG"
+echo "$(date) B: 90s $LOG"

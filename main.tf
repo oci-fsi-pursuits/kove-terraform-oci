@@ -247,9 +247,8 @@ EOT
     extra_vars_b64      = base64encode(local.extra_vars_yaml)
     rhsm_username_b64   = base64encode(var.rhsm_username)
     rhsm_password_b64   = base64encode(var.rhsm_password)
-    bm_private_ips_csv       = local.bm_private_ips_csv
-    ssh_private_key_b64      = var.ssh_private_key != "" ? base64encode(var.ssh_private_key) : ""
-    cluster_private_key_b64  = base64encode(tls_private_key.cluster_ssh.private_key_openssh)
+    bm_private_ips_csv  = local.bm_private_ips_csv
+    ssh_private_key_b64 = var.ssh_private_key != "" ? base64encode(var.ssh_private_key) : ""
   } : {}
 }
 
