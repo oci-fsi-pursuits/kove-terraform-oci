@@ -303,6 +303,8 @@ sudo ansible-playbook -i inventory/hosts configure-rhel-rdma.yml -e @extra_vars.
 ```
 Then check `/etc/hosts` and run step 5 to verify SSH.
 
+**Can't SSH to the head node (Permission denied):** The **SSH Public Key** in the stack must exactly match the public key for the private key you use to connect. From your machine run: `ssh-keygen -y -f /path/to/your-private.key` and compare the output (one line) with what you pasted in the stack variable—no extra spaces or line breaks. Use user **opc** for Oracle Linux: `ssh -i /path/to/your-private.key opc@<head_public_ip>`. The stack also adds a Terraform-generated key so both your key and the generated key are on the head.
+
 **"Permission denied (publickey)" when Ansible connects to BM nodes:** The head node does not have the private key that matches the SSH public key on the BM nodes. In the stack variables, set **SSH Private Key (optional)** to that private key (the same key you use to SSH to the head), then **re-apply** the stack (or run the playbook from your machine, which has the key). After a re-apply, the bootstrap will place the key on the head so Ansible can SSH to BM nodes.
 
 **"Host key verification failed" when SSHing to bm-node-1:** Either bm-node-1 is not in `/etc/hosts` yet, or the BM host key is not in `~/.ssh/known_hosts`. Re-run the playbook to populate `/etc/hosts`; then from the head run once: `ssh -o StrictHostKeyChecking=accept-new cloud-user@bm-node-1 hostname` (or `opc@bm-node-1` for Oracle Linux BM).

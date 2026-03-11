@@ -269,6 +269,10 @@ resource "oci_core_instance" "head_node" {
     memory_in_gbs = 8
   }
 
+  agent_config {
+    is_management_disabled = true
+  }
+
   source_details {
     source_type = "image"
     # When head_node_image_ocid is empty, use latest OL8 so head doesn't need RHSM; Ansible registers RHEL on BM only.
@@ -281,9 +285,9 @@ resource "oci_core_instance" "head_node" {
     hostname_label   = "headnode"
   }
 
+  # Match oci-hpc: user key first, then generated key; newline between and at end (OCI authorized_keys format)
   metadata = merge(
-    # User key first (so you can SSH to head); then Terraform-generated key (for head->BM and provisioning)
-    { ssh_authorized_keys = "${trimspace(var.ssh_public_key)}\n${tls_private_key.cluster_ssh.public_key_openssh}" },
+    { ssh_authorized_keys = "${trimspace(var.ssh_public_key)}\n${tls_private_key.cluster_ssh.public_key_openssh}\n" },
     var.run_ansible_from_head ? { user_data = base64encode(templatefile("${path.module}/scripts/cloud_init_bootstrap.yaml.tpl", { bootstrap_script_b64 = base64encode(templatefile("${path.module}/scripts/head_bootstrap.sh.tpl", local.bootstrap_template_vars)) })) } : {}
   )
 }
@@ -311,7 +315,7 @@ resource "oci_core_instance_configuration" "bm_cluster" {
       }
 
       metadata = {
-        ssh_authorized_keys = "${trimspace(var.ssh_public_key)}\n${tls_private_key.cluster_ssh.public_key_openssh}"
+        ssh_authorized_keys = "${trimspace(var.ssh_public_key)}\n${tls_private_key.cluster_ssh.public_key_openssh}\n"
       }
 
       agent_config {
