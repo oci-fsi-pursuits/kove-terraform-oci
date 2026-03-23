@@ -51,12 +51,16 @@ This document supplements the **[README](README.md)** with Terraform **variable*
 | `existing_vcn_id` | String | "" | Existing VCN OCID (required if `use_existing_vcn = true`) |
 | `existing_public_subnet_id` | String | "" | Existing public subnet OCID for head node |
 | `existing_private_subnet_id` | String | "" | Existing private subnet OCID for BM nodes |
+| `existing_rdma_subnet_id` | String | "" | Optional subnet for BM secondary (RDMA) VNIC; if empty with existing VCN, private subnet is reused |
+| `cluster_network_availability_domain` | String | "" | Optional AD (e.g. `Uocm:PHX-AD-1`) for BM fleet; empty = first tenancy AD |
+| `bm_boot_volume_size_gbs` | Number | 120 | BM boot volume size in GB |
 | `cluster_network_create_timeout` | String | "90m" | Max wait for BM cluster network to reach RUNNING. Increase (e.g. `2h`) if apply times out; BM can take 45?90+ min. |
 
 **Note**: When `use_existing_vcn = true`, you must provide all three existing resource IDs. When `use_existing_vcn = false`, a new VCN will be created with:
 - VCN CIDR: 10.0.0.0/16
 - Public subnet CIDR: 10.0.1.0/24
 - Private subnet CIDR: 10.0.2.0/24
+- Cluster / RDMA subnet CIDR: 10.0.3.0/24 (secondary VNIC placement)
 
 ### Ansible from head (Resource Manager)
 
@@ -389,6 +393,15 @@ The project includes two Ansible roles that can be used independently:
 ## Troubleshooting
 
 ### Terraform Errors
+
+**Cluster network creation fails quickly with state `TERMINATED` (not `RUNNING`)**
+
+Common causes:
+
+1. **Wrong availability domain** ? `BM.Optimized3.36` fleet hardware exists only in specific ADs per region. The stack defaults to the **first AD** returned for the tenancy; in Phoenix and other regions that may not support this shape?s cluster network. Set **`cluster_network_availability_domain`** to an AD that supports cluster networks (Console: create flow or capacity report; name looks like `Uocm:PHX-AD-1`).
+2. **Placement networking** ? Cluster networks require **`primary_vnic_subnets` and `secondary_vnic_subnets`** in placement. With an **existing VCN**, add **`existing_rdma_subnet_id`** if you have a dedicated RDMA subnet; if empty, the stack uses the **private subnet for both** (Oracle?s documented pattern for simple setups).
+3. **Instance configuration** ? The template uses **`source = "NONE"`** (oci-hpc style), explicit **boot volume** size, **OS Management Service Agent** disabled, and **RDMA** plugins enabled. A **custom image** must still be **compatible** with `BM.Optimized3.36` and cluster networking; see OCI work request / service logs in the Console for the exact error.
+4. **Image** ? Oracle?s docs often reference the **Oracle Linux HPC** marketplace image for cluster networks; custom **RHEL** images can work but must meet OCI requirements for BM + RDMA.
 
 **Error: 400 - CannotParseRequest**
 - **Cause**: Instance configuration may have incorrect structure

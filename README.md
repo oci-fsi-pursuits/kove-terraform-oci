@@ -134,7 +134,7 @@ Console path: **Resource Manager → Stacks → Create stack**.
 
 **Optional**
 
-- **Use existing VCN** — set the option and paste **VCN**, **public subnet**, and **private subnet** OCIDs.
+- **Use existing VCN** — set the option and paste **VCN**, **public subnet**, and **private subnet** OCIDs. Optional **RDMA / secondary subnet** if you have one; optional **cluster network availability domain** (e.g. `Uocm:PHX-AD-1`) if the cluster network goes **TERMINATED** immediately — see [STACK-REFERENCE.md — Troubleshooting](STACK-REFERENCE.md#terraform-errors).
 - **Run Ansible from head at first boot** = **true** — set **RHSM username/password** for the BMs and paste the **SSH private key** that matches your public key (so the head can SSH to the BMs). Add the head to a **dynamic group** and grant **instance principal** policies; full steps → **[STACK-REFERENCE.md — Run Ansible from head](STACK-REFERENCE.md#run-ansible-from-head-node-resource-manager)**.
 
 **If something fails:** cluster network apply timeout → increase **Cluster network create timeout** (e.g. `2h`). Empty Ansible BM inventory or BM data source errors → try **BM pool ready wait** (e.g. `15m`).

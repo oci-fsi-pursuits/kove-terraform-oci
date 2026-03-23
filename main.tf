@@ -209,10 +209,16 @@ resource "oci_core_subnet" "cluster" {
 
 # Locals to abstract between new vs existing networking
 locals {
-  vcn_id             = var.use_existing_vcn ? var.existing_vcn_id : oci_core_virtual_network.this[0].id
-  public_subnet_id   = var.use_existing_vcn ? var.existing_public_subnet_id : oci_core_subnet.public[0].id
-  private_subnet_id  = var.use_existing_vcn ? var.existing_private_subnet_id : oci_core_subnet.private[0].id
-  cluster_subnet_id  = var.use_existing_vcn ? var.existing_private_subnet_id : oci_core_subnet.cluster[0].id
+  vcn_id            = var.use_existing_vcn ? var.existing_vcn_id : oci_core_virtual_network.this[0].id
+  public_subnet_id  = var.use_existing_vcn ? var.existing_public_subnet_id : oci_core_subnet.public[0].id
+  private_subnet_id = var.use_existing_vcn ? var.existing_private_subnet_id : oci_core_subnet.private[0].id
+  # Cluster network placement requires primary + secondary VNIC subnets (Oracle TF example / RDMA BM fleets).
+  # New VCN: dedicated 10.0.3.0/24 for RDMA. Existing VCN: set existing_rdma_subnet_id or defaults to private (same as Oracle doc examples).
+  rdma_subnet_id = var.use_existing_vcn ? (
+    length(trimspace(var.existing_rdma_subnet_id)) > 0 ? var.existing_rdma_subnet_id : var.existing_private_subnet_id
+  ) : oci_core_subnet.cluster[0].id
+  # BM.Optimized3.36 exists only in ADs with HPC fleet hardware; first tenancy AD may be wrong for PHX etc.
+  cluster_network_ad = length(trimspace(var.cluster_network_availability_domain)) > 0 ? var.cluster_network_availability_domain : local.ad_name
 }
 
 # Single zip of playbooks to stay under OCI metadata limit (32KB). Only used when run_ansible_from_head = true.
@@ -299,7 +305,9 @@ resource "oci_core_instance" "head_node" {
 # Instance configuration template for cluster network (no create_vnic_details; cluster network provides VNICs)
 resource "oci_core_instance_configuration" "bm_cluster" {
   compartment_id = var.compartment_ocid
-  display_name   = "bm-cluster-config"
+  display_name     = "bm-cluster-config"
+  # Required for templates not cloned from an existing instance (matches oracle-quickstart/oci-hpc).
+  source = "NONE"
 
   lifecycle {
     precondition {
@@ -315,14 +323,16 @@ resource "oci_core_instance_configuration" "bm_cluster" {
   instance_details {
     instance_type = "compute"
     launch_details {
+      availability_domain = local.cluster_network_ad
       compartment_id      = var.compartment_ocid
-      availability_domain = local.ad_name
       display_name        = "bm-node"
       shape               = "BM.Optimized3.36"
 
       source_details {
-        source_type = "image"
-        image_id    = var.bm_node_image_ocid
+        source_type             = "image"
+        image_id                = var.bm_node_image_ocid
+        boot_volume_size_in_gbs = var.bm_boot_volume_size_gbs
+        boot_volume_vpus_per_gb = 30
       }
 
       metadata = {
@@ -333,6 +343,10 @@ resource "oci_core_instance_configuration" "bm_cluster" {
         are_all_plugins_disabled = false
         is_management_disabled   = true
         is_monitoring_disabled   = false
+        plugins_config {
+          name          = "OS Management Service Agent"
+          desired_state = "DISABLED"
+        }
         plugins_config {
           name          = "Compute HPC RDMA Authentication"
           desired_state = "ENABLED"
@@ -357,11 +371,13 @@ resource "oci_core_cluster_network" "bm_cluster" {
   }
 
   placement_configuration {
-    availability_domain = local.ad_name
+    availability_domain = local.cluster_network_ad
     primary_vnic_subnets {
       subnet_id = local.private_subnet_id
     }
-    # OCI API expects 0 secondary_vnic_subnets; RDMA/secondary VNIC is managed by the platform for cluster networks.
+    secondary_vnic_subnets {
+      subnet_id = local.rdma_subnet_id
+    }
   }
 
   # BM cluster networks can take 45–90+ min to reach RUNNING when capacity is tight. Configurable via cluster_network_create_timeout.
