@@ -75,8 +75,9 @@ This stack provisions and configures an HPC cluster on OCI consisting of:
 2. **Authentication:** This stack is for OCI Resource Manager only. It uses the **resource principal** (no API keys). The user running the stack must have permission to create the resources in the chosen compartment.
 
 3. **Custom Image**:
-   - RHEL 8.8 image OCID compatible with `BM.Optimized3.36` and `VM.Standard.E6.Flex`
-   - Image must be in the target compartment
+   - RHEL **8.8** image OCID compatible with `BM.Optimized3.36` and `VM.Standard.E6.Flex`
+   - Image must be in the target compartment  
+   - **Step guide:** [Import RHEL 8.8 into OCI](docs/RHEL-8-8-OCI-IMPORT.md) (Red Hat account → download → Object Storage → import → OCID)
 
 4. **SSH Key Pair**:
    - Public key for instance access
@@ -140,10 +141,10 @@ Create a zip file containing all Terraform files:
 
 ```bash
 # On Windows (PowerShell)
-Compress-Archive -Path main.tf,variables.tf,outputs.tf,schema.yaml,scripts,inventory.tpl,playbooks -DestinationPath oci-hpc-bm-cluster-stack.zip
+Compress-Archive -Path main.tf,variables.tf,outputs.tf,schema.yaml,scripts,inventory.tpl,playbooks,docs -DestinationPath oci-hpc-bm-cluster-stack.zip
 
 # On Linux/Mac
-zip -r oci-hpc-bm-cluster-stack.zip main.tf variables.tf outputs.tf schema.yaml inventory.tpl playbooks/ scripts/
+zip -r oci-hpc-bm-cluster-stack.zip main.tf variables.tf outputs.tf schema.yaml inventory.tpl playbooks/ scripts/ docs/
 ```
 
 **Important**: Ensure the zip file contains:
@@ -154,6 +155,7 @@ zip -r oci-hpc-bm-cluster-stack.zip main.tf variables.tf outputs.tf schema.yaml 
 - `scripts/` directory (required when using Run Ansible from head; contains `head_bootstrap.sh.tpl`)
 - `inventory.tpl` (optional, for Ansible)
 - `playbooks/` directory (required when using Run Ansible from head; contains playbook and roles)
+- `docs/` directory (optional; includes [RHEL 8.8 OCI import](docs/RHEL-8-8-OCI-IMPORT.md))
 
 #### 2. Create Stack in OCI Resource Manager
 
