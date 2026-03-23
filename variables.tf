@@ -18,13 +18,6 @@ variable "ssh_public_key" {
   description = "SSH public key to inject into instances"
 }
 
-variable "ssh_private_key" {
-  type        = string
-  description = "Optional: SSH private key matching ssh_public_key. When set and Run Ansible from head is true, this key is placed on the head node so it can SSH to BM nodes (BM nodes already have the public key). Leave empty to run the playbook from your machine instead."
-  default     = ""
-  sensitive   = true
-}
-
 variable "bm_node_image_ocid" {
   type        = string
   description = "RHEL 8.8 image OCID for BM.Optimized3.36 nodes (cluster network)"

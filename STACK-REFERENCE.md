@@ -10,7 +10,7 @@ This document supplements the **[README](README.md)** with Terraform **variable*
 |------|--------|
 | **Deploy** | Use the **Deploy to Oracle Cloud** button in the [README](README.md) or zip `main.tf`, `variables.tf`, `outputs.tf`, `schema.yaml`, `scripts/`, `playbooks/` (+ `inventory.tpl` if used) and create a stack in **Resource Manager**. |
 | **Image** | Set **`bm_node_image_ocid`** to your RHEL 8.8 custom image. Leave **`head_node_image_ocid`** empty to use latest **Oracle Linux 8** on the head. |
-| **SSH** | **`ssh_public_key`** must match the key you use to log in. **`ssh_private_key`** is required when **Run Ansible from head** is **true** (head must SSH to BMs; OCI metadata size limits prevent baking the cluster private key in user_data). |
+| **SSH** | **`ssh_public_key`** is your login key. When **Run Ansible from head** is **true**, the head uses the **Terraform-generated ED25519** private key (embedded in bootstrap) to SSH to BMs; that key's public half is already on all nodes. |
 | **Ansible from head** | Set **`run_ansible_from_head`** = true, **`rhsm_username`** / **`rhsm_password`** for BMs, dynamic group + policy for **instance principal** (see [Run Ansible from head node](#run-ansible-from-head-node-resource-manager)). Bootstrap log: **`/var/log/oci-hpc-ansible-bootstrap.log`**. |
 | **Timeouts** | **`cluster_network_create_timeout`** default **90m** (try **2h** if needed). **`bm_pool_ready_wait`** default **10m** (try **15m** if BM instance data or inventory is still empty). |
 
@@ -67,7 +67,6 @@ This document supplements the **[README](README.md)** with Terraform **variable*
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
 | `run_ansible_from_head` | Boolean | false | If true, head node runs the RHEL + RDMA Ansible playbook at first boot via cloud-init |
-| `ssh_private_key` | String | "" | *(Optional)* Private key matching `ssh_public_key`. When set, placed on the head so it can SSH to BM nodes. Required for head-run Ansible unless you run the playbook from your machine. |
 | `instance_ssh_user` | String | "cloud-user" | SSH user on BM nodes (RHEL; typically `cloud-user`) |
 | `head_node_ssh_user` | String | `opc` | SSH user on head node (`opc` for Oracle Linux head image). |
 | `rhsm_username` | String | "" | RHSM username (required when `run_ansible_from_head = true`) |
@@ -85,7 +84,7 @@ When `run_ansible_from_head = true`, the head node must be in an OCI **dynamic g
 
 **One-click deploy:** Use the [Deploy to Oracle Cloud](https://cloud.oracle.com/resourcemanager/stacks/create?zipUrl=https://github.com/ncusato/kove-terraform-oci/archive/refs/heads/master.zip) button in the [README](README.md).
 
-**To get automatic cluster setup (Ansible at first boot):** In the stack variables, set **"Run Ansible from head at first boot"** to **true**; (for RHEL BM nodes) set RHSM username/password; and set **"SSH Private Key (optional)"** to the private key that matches your **SSH Public Key**. **SSH login:** Your public key is on the head first (so you can log in), and a Terraform-generated key is also on the head and BM nodes. OCI metadata is limited to 32KB, so the generated private key cannot be embedded in the bootstrap?for head?BM SSH you must provide **SSH Private Key** so the head can run Ansible. If you leave it empty, Ansible will fail with "Permission denied (publickey)" when connecting to BM nodes. If you leave **Run Ansible from head** **false**, the head node will have no bootstrap and no cluster entries in `/etc/hosts`?you would configure nodes manually.
+**To get automatic cluster setup (Ansible at first boot):** Set **"Run Ansible from head at first boot"** to **true** and set RHSM username/password for RHEL BMs. **SSH login:** Your **SSH public key** is on the head and BMs; a **Terraform-generated ED25519** key pair is also on all nodes. The bootstrap embeds the **generated private key** (small) on the head so Ansible can SSH to BMs ? **you do not pass a separate SSH private key variable.** If **Run Ansible from head** is **false**, the head has no bootstrap and no cluster `/etc/hosts` entries unless you configure manually.
 
 #### 1. Prepare Stack Archive (manual upload)
 
@@ -262,7 +261,7 @@ Then check `/etc/hosts` and run step 5 to verify SSH.
 
 **Can't SSH to the head node (Permission denied):** The **SSH Public Key** in the stack must exactly match the public key for the private key you use to connect. From your machine run: `ssh-keygen -y -f /path/to/your-private.key` and compare the output (one line) with what you pasted in the stack variable?no extra spaces or line breaks. Use user **opc** for Oracle Linux: `ssh -i /path/to/your-private.key opc@<head_public_ip>`. The stack also adds a Terraform-generated key so both your key and the generated key are on the head.
 
-**"Permission denied (publickey)" when Ansible connects to BM nodes:** The head node does not have the private key that matches the SSH public key on the BM nodes. In the stack variables, set **SSH Private Key (optional)** to that private key (the same key you use to SSH to the head), then **re-apply** the stack (or run the playbook from your machine, which has the key). After a re-apply, the bootstrap will place the key on the head so Ansible can SSH to BM nodes.
+**"Permission denied (publickey)" when Ansible connects to BM nodes:** Confirm BMs received the **Terraform-generated** public key in instance metadata (re-apply if the instance configuration changed). The bootstrap should install `/root/.ssh/id_ed25519` (and the head user's copy). Re-run **`sudo /opt/oci-hpc-bootstrap.sh`** after fixes, or run the playbook from your laptop with your own key.
 
 **"Host key verification failed" when SSHing to bm-node-1:** Either bm-node-1 is not in `/etc/hosts` yet, or the BM host key is not in `~/.ssh/known_hosts`. Re-run the playbook to populate `/etc/hosts`; then from the head run once: `ssh -o StrictHostKeyChecking=accept-new cloud-user@bm-node-1 hostname` (or `opc@bm-node-1` for Oracle Linux BM).
 

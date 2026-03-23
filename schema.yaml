@@ -27,7 +27,6 @@ variableGroups:
     variables:
       - run_ansible_from_head
       - bm_pool_ready_wait
-      - ssh_private_key
       - instance_ssh_user
       - head_node_ssh_user
       - rhsm_username
@@ -65,12 +64,6 @@ variables:
     title: "SSH Public Key"
     description: "Public key injected into all instances (head and BM nodes). Use the same key you use to SSH to the head."
     required: true
-
-  ssh_private_key:
-    type: string
-    title: "SSH Private Key (optional)"
-    description: "Private key that matches the SSH Public Key above. When set and Run Ansible from head is true, it is placed on the head so Ansible can SSH to BM nodes. BM nodes already have your public key. Leave empty to run the playbook from your machine instead."
-    required: false
 
   bm_node_image_ocid:
     type: oci:core:image:id

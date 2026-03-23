@@ -451,7 +451,7 @@ copy terraform.tfvars.example terraform.tfvars
 notepad terraform.tfvars
 ```
 
-Fill **all required** values (see `variables.tf` / `schema.yaml`). For **multiline** `ssh_private_key`, use a heredoc in the tfvars file as shown in the example.
+Fill **all required** values (see `variables.tf` / `schema.yaml`). Head-run Ansible uses the Terraform-generated SSH key embedded in bootstrap (no `ssh_private_key` variable).
 
 ### 6. Initialize and run Terraform
 
@@ -489,22 +489,16 @@ terraform destroy
 #### Terraform variables (OCIDs vs real secrets)
 
 - **Identifiers (still confidential for customers):** `tenancy_ocid`, `compartment_ocid`, subnet OCIDs, image OCIDs. Put them in a **local** file that is **never committed** (e.g. `terraform.tfvars`). Don’t paste them into public tickets or screenshots.
-- **Secrets:** `ssh_private_key`, `rhsm_password`, and optionally `rhsm_username`. Keep them out of shared copies of `terraform.tfvars`.
+- **Secrets:** `rhsm_password`, and optionally `rhsm_username` (if you treat it as sensitive). Keep them out of shared copies of `terraform.tfvars`.
 
 **Recommended split (all local / gitignored):**
 
-1. **`terraform.tfvars`** — OCIDs, region, flags, `ssh_public_key`; leave secret vars empty or omit them.
-2. **`secrets.auto.tfvars`** (same folder as `main.tf`) — only secrets. Terraform **auto-loads** `*.auto.tfvars`. This repo’s `.gitignore` ignores `secrets.auto.tfvars`.
+1. **`terraform.tfvars`** — OCIDs, region, flags, `ssh_public_key`; leave RHSM secrets empty or omit them.
+2. **`secrets.auto.tfvars`** (same folder as `main.tf`) — RHSM credentials when using Ansible from head. Terraform **auto-loads** `*.auto.tfvars`. This repo’s `.gitignore` ignores `secrets.auto.tfvars`.
 
 Example `secrets.auto.tfvars`:
 
 ```hcl
-ssh_private_key = <<-EOT
------BEGIN OPENSSH PRIVATE KEY-----
-...
------END OPENSSH PRIVATE KEY-----
-EOT
-
 rhsm_username = "your-rhsm-user"
 rhsm_password = "your-rhsm-pass"
 ```

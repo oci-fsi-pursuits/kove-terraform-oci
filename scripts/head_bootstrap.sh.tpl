@@ -42,8 +42,8 @@ do_bootstrap() {
       _sshdir="/home/$_u/.ssh"
       [ "$_u" = "root" ] && _sshdir="/root/.ssh"
       mkdir -p "$_sshdir"
-      echo "$SSH_PRIVATE_KEY_B64" | base64 -d > "$_sshdir/id_rsa"
-      chmod 600 "$_sshdir/id_rsa"
+      echo "$SSH_PRIVATE_KEY_B64" | base64 -d > "$_sshdir/id_ed25519"
+      chmod 600 "$_sshdir/id_ed25519"
       chown -R "$_u:$_u" "$_sshdir" 2>/dev/null || true
     done
   fi
