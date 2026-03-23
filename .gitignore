@@ -3,11 +3,6 @@
 *.tfstate
 *.tfstate.*
 .terraform.lock.hcl
-# Local variable files (never commit secrets)
-terraform.tfvars
-terraform.tfvars.json
-*.local.tfvars
-secrets.auto.tfvars
 # Packed playbooks (generated when run_ansible_from_head = true)
 playbooks.zip
 .terraform/playbooks.zip
