@@ -48,6 +48,12 @@ variable "cluster_network_create_timeout" {
   default     = "90m"
 }
 
+variable "bm_pool_ready_wait" {
+  type        = string
+  description = "Delay after cluster network is RUNNING before Terraform reads BM instance IDs (e.g. 5m, 8m). Increase if bootstrap inventory has empty [bm] or missing private IPs."
+  default     = "5m"
+}
+
 # -------------------------------------------------------------------
 # Networking control
 # -------------------------------------------------------------------
@@ -56,6 +62,15 @@ variable "use_existing_vcn" {
   type        = bool
   description = "If true, use existing VCN and subnets; if false, create new networking."
   default     = false
+
+  validation {
+    condition = !var.use_existing_vcn || (
+      length(var.existing_vcn_id) > 0 &&
+      length(var.existing_public_subnet_id) > 0 &&
+      length(var.existing_private_subnet_id) > 0
+    )
+    error_message = "When use_existing_vcn is true, set existing_vcn_id, existing_public_subnet_id, and existing_private_subnet_id."
+  }
 }
 
 variable "existing_vcn_id" {
@@ -75,19 +90,6 @@ variable "existing_private_subnet_id" {
   description = "Existing private subnet OCID for BM nodes"
   default     = ""
 }
-
-# Simple validation to help catch misconfig
-locals {
-  networking_config_valid = var.use_existing_vcn ? (
-    length(var.existing_vcn_id) > 0 &&
-    length(var.existing_public_subnet_id) > 0 &&
-    length(var.existing_private_subnet_id) > 0
-  ) : true
-}
-
-# Terraform doesn't allow top-level validation on locals directly,
-# but you can add a "fake" resource if you want hard enforcement.
-# For now, we rely on you to set the IDs correctly when use_existing_vcn = true.
 
 # -------------------------------------------------------------------
 # Ansible from head node (Resource Manager)

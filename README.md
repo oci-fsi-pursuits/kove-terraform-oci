@@ -120,6 +120,7 @@ This stack provisions and configures an HPC cluster on OCI consisting of:
 | `rhsm_username` | String | "" | RHSM username (required when `run_ansible_from_head = true`) |
 | `rhsm_password` | String | "" | RHSM password (required when `run_ansible_from_head = true`) |
 | `rdma_ping_target` | String | "" | Optional IP for RDMA ping check (e.g. another BM node's RDMA interface) |
+| `bm_pool_ready_wait` | String | "5m" | Wait after cluster network RUNNING before reading BM IPs for Ansible bootstrap. Try **8m** if `[bm]` is empty. |
 
 **Recommended:** Set **Head node image** to an **Oracle Linux** image. The head then uses free OL repos (no RHSM), installs Ansible and OCI CLI, and runs the playbook; Ansible registers **RHEL only on the BM nodes** and does all installs there.
 
@@ -252,7 +253,9 @@ If you set **Run Ansible from head at first boot** to **true** in the stack, the
 
 3. **Apply the stack** with `run_ansible_from_head = true`, `rhsm_username`, and `rhsm_password` set. After the head node boots, check `/var/log/oci-hpc-ansible-bootstrap.log` on the head node for playbook progress.
 
-**Note:** Like [oci-hpc](https://github.com/oracle-quickstart/oci-hpc), BM node private IPs are obtained via **Terraform data sources** at apply time (`oci_core_cluster_network_instances` + `oci_core_instance`). Terraform waits 8 minutes for the instance pool to have instances, then injects the IPs into the bootstrap script so the head node does not need to call `oci compute instance list-vnics`. The head node is created after that wait. user_data is delivered as **cloud-init cloud-config** (write script + runcmd); the script then runs Ansible with the pre-built inventory. Check **`/var/log/oci-hpc-ansible-bootstrap.log`** on the head node for progress. Set **SSH user for instances** to match your image (`cloud-user` for RHEL, `opc` for Oracle Linux). The playbook updates **/etc/hosts** and **passwordless SSH** on all nodes.
+**Note:** Like [oci-hpc](https://github.com/oracle-quickstart/oci-hpc), BM node private IPs are obtained via **Terraform data sources** at apply time (`oci_core_cluster_network_instances` + `oci_core_instance`). After the cluster network reaches **RUNNING**, Terraform waits **`bm_pool_ready_wait`** (default **5m**; increase to **8m** in stack variables if `[bm]` is empty) before reading instance IDs, then injects the IPs into the bootstrap script so the head node does not need to call `oci compute instance list-vnics`. The head node is created after that wait. user_data is delivered as **cloud-init cloud-config** (write script + runcmd); the script then runs Ansible with the pre-built inventory. Check **`/var/log/oci-hpc-ansible-bootstrap.log`** on the head node for progress. Set **SSH user for instances** to match your image (`cloud-user` for RHEL, `opc` for Oracle Linux). The playbook updates **/etc/hosts** and **passwordless SSH** on all nodes.
+
+**Why does provisioning take so long?** The stack creates a **cluster network** with **bare metal** nodes (BM.Optimized3.36) on an **RDMA fabric**. OCI must allocate physical capacity, wire the cluster network, and bring the instance pool to **RUNNING**—often **45–90+ minutes** depending on region, AD, and demand. Terraform only polls until the API reports **RUNNING** (see **Cluster network create timeout**, default **90m**). After that, a short wait reads BM IPs, then the **head VM** is created. None of that is “Terraform being slow”; it is **OCI BM cluster provisioning time**.
 
 **Terraform never runs Ansible** – it only creates the instance with user_data. The bootstrap runs **inside the VM at first boot** via cloud-init. So "Apply complete" in Terraform just means the instance was created; configuration happens asynchronously on the node.
 

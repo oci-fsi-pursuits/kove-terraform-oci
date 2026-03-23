@@ -24,6 +24,7 @@ variableGroups:
   - title: "Ansible from head"
     variables:
       - run_ansible_from_head
+      - bm_pool_ready_wait
       - ssh_private_key
       - instance_ssh_user
       - head_node_ssh_user
@@ -131,6 +132,13 @@ variables:
     description: "If true, head node runs RHEL + RDMA Ansible playbook at first boot. Requires head node in a dynamic group with instance principal (see README)."
     default: false
     required: true
+
+  bm_pool_ready_wait:
+    type: string
+    title: "Wait after cluster network (Ansible)"
+    description: "Delay after BM cluster network is RUNNING before reading BM IPs (e.g. 5m, 8m). Increase if inventory has empty [bm]."
+    default: "5m"
+    required: false
 
   instance_ssh_user:
     type: string

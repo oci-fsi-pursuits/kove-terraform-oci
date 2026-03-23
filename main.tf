@@ -367,7 +367,7 @@ resource "oci_core_cluster_network" "bm_cluster" {
 # Wait for instance pool to have instances, then read IPs via data sources so we
 # inject them into the bootstrap script (no OCI CLI list-vnics on the head).
 resource "time_sleep" "wait_bm_instances" {
-  create_duration = var.run_ansible_from_head ? "5m" : "0s"
+  create_duration = var.run_ansible_from_head ? var.bm_pool_ready_wait : "0s"
   depends_on      = [oci_core_cluster_network.bm_cluster]
 }
 
