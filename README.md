@@ -1,6 +1,8 @@
-# OCI HPC BM Cluster Stack
+# Kove Infra Build on OCI
 
-[![Deploy to Oracle Cloud](https://oci-resourcemanager-plugin.plugins.oci.oraclecloud.com/latest/deploy-to-oracle-cloud.svg)](https://cloud.oracle.com/resourcemanager/stacks/create?zipUrl=https://github.com/ncusato/kove-terraform-oci/archive/refs/heads/master.zip)
+[![Deploy to Oracle Cloud](https://oci-resourcemanager-plugin.plugins.oci.oraclecloud.com/latest/deploy-to-oracle-cloud.svg)](https://cloud.oracle.com/resourcemanager/stacks/create?zipUrl=https://github.com/ncusato/kove-terraform-oci/archive/refs/tags/Kove-RHEL88-OCI.zip)
+
+*Deploy uses Git tag **`Kove-RHEL88-OCI`** (not `master`). GitHub’s download is usually named `kove-terraform-oci-Kove-RHEL88-OCI.zip`; you can rename it to **`Kove-RHEL88-OCI.zip`** before upload if you want that exact filename. To refresh the zip after changes, move the tag to the latest commit and push the tag again.*
 
 ## Background: Kove and why this stack targets OCI
 

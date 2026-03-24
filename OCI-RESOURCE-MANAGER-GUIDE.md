@@ -33,10 +33,10 @@ Add this to your `README.md`:
 Replace:
 - `YOUR_USERNAME` – your GitHub username or org
 - `YOUR_REPO` – repository name
-- `main` – branch name (use `master` if that's your default)
+- `main` – branch name (use `master` if that's your default), **or** use a **tag** for a stable, named snapshot, e.g. `https://github.com/YOUR_USERNAME/YOUR_REPO/archive/refs/tags/Kove-RHEL88-OCI.zip` (this repo’s deploy button uses tag **`Kove-RHEL88-OCI`** instead of `master`).
 
 When clicked, this:
-1. Downloads `https://github.com/YOUR_USERNAME/YOUR_REPO/archive/refs/heads/main.zip`
+1. Downloads the archive from the `zipUrl` you set (branch or tag)
 2. Opens OCI Resource Manager "Create Stack" with that zip pre-loaded
 3. Shows the UI defined by your `schema.yaml`
 

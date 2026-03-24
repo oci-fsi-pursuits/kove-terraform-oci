@@ -1,6 +1,6 @@
-title: "OCI HPC BM Cluster Stack"
-description: "Provision a head node and 4 BM.Optimized3.36 nodes on OCI."
-informationalText: "Provide one RHEL 8.8 image OCID for BM nodes; the same image is used for the head node. Tenancy and region are pre-filled from your session."
+title: "Kove Infra Build on OCI"
+description: "Kove infra: head node plus bare metal RHEL 8.8 workers (BM.Optimized3.36 by default) on OCI."
+informationalText: "Provide one RHEL 8.8 image OCID for BM nodes. Use Oracle Linux for the head when head image is left empty. Tenancy and region are pre-filled from your session. Resource Manager zip: Git tag Kove-RHEL88-OCI."
 schemaVersion: 1.1.0
 version: "20190304"
 locale: "en"

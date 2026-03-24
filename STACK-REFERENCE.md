@@ -86,7 +86,7 @@ When `run_ansible_from_head = true`, the head node must be in an OCI **dynamic g
 
 ### Option 1: Deploy via OCI Resource Manager (Recommended)
 
-**One-click deploy:** Use the [Deploy to Oracle Cloud](https://cloud.oracle.com/resourcemanager/stacks/create?zipUrl=https://github.com/ncusato/kove-terraform-oci/archive/refs/heads/master.zip) button in the [README](README.md).
+**One-click deploy:** Use the [Deploy to Oracle Cloud](https://cloud.oracle.com/resourcemanager/stacks/create?zipUrl=https://github.com/ncusato/kove-terraform-oci/archive/refs/tags/Kove-RHEL88-OCI.zip) button in the [README](README.md). Source ref is Git tag **`Kove-RHEL88-OCI`**.
 
 **To get automatic cluster setup (Ansible at first boot):** Set **"Run Ansible from head at first boot"** to **true** and set RHSM username/password for RHEL BMs. **SSH login:** Your **SSH public key** is on the head and BMs; a **Terraform-generated ED25519** key pair is also on all nodes. The bootstrap embeds the **generated private key** (small) on the head so Ansible can SSH to BMs ? **you do not pass a separate SSH private key variable.** If **Run Ansible from head** is **false**, the head has no bootstrap and no cluster `/etc/hosts` entries unless you configure manually.
 
