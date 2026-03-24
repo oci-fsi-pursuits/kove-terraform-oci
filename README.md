@@ -2,6 +2,27 @@
 
 [![Deploy to Oracle Cloud](https://oci-resourcemanager-plugin.plugins.oci.oraclecloud.com/latest/deploy-to-oracle-cloud.svg)](https://cloud.oracle.com/resourcemanager/stacks/create?zipUrl=https://github.com/ncusato/kove-terraform-oci/archive/refs/heads/master.zip)
 
+## Background: Kove and why this stack targets OCI
+
+**[Kove](https://kove.com/)** builds **Kove:SDM™** (*software-defined memory*)—technology that lets many servers share and grow effective memory capacity from a common pool so large, memory-heavy jobs (HPC, AI, analytics, and similar) are less constrained by a single machine’s RAM. Learn more on **[kove.com](https://kove.com/)**.
+
+This repository is **infrastructure-as-code** for a **bare-metal cluster footprint on Oracle Cloud Infrastructure (OCI)** used in that kind of environment. It is not a substitute for Kove product documentation; it provisions network, head + worker nodes, and optional automation so you can run **RHEL on OCI bare metal** with **RDMA-oriented** setup.
+
+**Why OCI (and how it differs from typical generic cloud VMs)**
+
+Other hyperscalers offer VMs, some offer bare metal or isolated RDMA SKUs, but the **combination** this stack assumes is what draws this workload to **OCI** in practice:
+
+| Theme | Why it matters here |
+|--------|---------------------|
+| **Bare metal shapes** | Workloads that care about memory virtualization and **latency** often need **dedicated hosts** (e.g. **BM.Optimized3**), not a shared hypervisor slice, so behavior matches physical servers more closely. |
+| **RDMA** | **Remote direct memory access** matters for **low CPU overhead** and **low latency** between nodes. OCI documents **HPC / RDMA**-style networking for suitable shapes; this stack’s Ansible path configures **RHEL** side **RDMA auth** on the BMs. Many default “VPC only” footprints elsewhere **do not** expose the same **RDMA-on-bare-metal** story without different SKUs or constraints. |
+| **Non-blocking / HPC-style networking** | **HPC cluster** networking aims at **predictable, low-contention** bandwidth between nodes. Generic cloud **oversubscribed** virtual networks are often a poor match for **tightly coupled** memory and I/O patterns; OCI’s **HPC-oriented** networking model is aligned with that requirement. |
+| **Off-box / pooled memory** | **Software-defined memory** implies a lot of **fast host-to-host** traffic. That fits best with **stable physical placement**, **RDMA where available**, and **minimal in-path virtualization**—the pattern this Terraform stack is built around on **OCI**. |
+
+So: the stack is **OCI-specific** because it relies on **OCI bare metal**, **documented RDMA / HPC networking patterns**, and **compute-cluster style placement**—not because application code cannot run elsewhere, but because **those ingredients together** are the usual prerequisite for this class of deployment.
+
+---
+
 ## What this is
 
 This **OCI Resource Manager** / Terraform stack builds a small **HPC-style cluster**:
