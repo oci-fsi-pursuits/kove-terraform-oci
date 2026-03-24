@@ -13,3 +13,5 @@ secrets.auto.tfvars
 # Packed playbooks (generated when run_ansible_from_head = true)
 playbooks.zip
 .terraform/playbooks.zip
+# OCI Resource Manager job exports (browser download names often ocid1.ormjob....zip)
+ocid1.ormjob*.zip
