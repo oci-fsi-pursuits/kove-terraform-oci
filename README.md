@@ -240,7 +240,10 @@ Console path: **Resource Manager → Stacks → Create stack**.
 **Optional**
 
 - **Use existing VCN** — set the option and paste **VCN**, **public subnet**, and **private subnet** OCIDs. Optional **BM / compute cluster availability domain** (e.g. `pILZ:PHX-AD-2`) if bare metal hits **capacity** errors in the default AD — see [STACK-REFERENCE.md — Troubleshooting](STACK-REFERENCE.md#terraform-errors).
-- **Run Ansible from head at first boot** = **true** — set **RHSM username/password** for the BMs (or use **`secrets.auto.tfvars`**). The head uses a **Terraform-generated SSH key** (already on the BMs) to run Ansible—no separate private-key variable. You still need the **dynamic group** and **instance principal** policies described under **Prerequisites** above; more detail → **[STACK-REFERENCE.md — Run Ansible from head](STACK-REFERENCE.md#run-ansible-from-head-node-resource-manager)**.
+
+**Ansible (defaults to on in the wizard)**
+
+- **Run Ansible from head at first boot** defaults to **Yes** — cloud-init creates **`/opt/oci-hpc-ansible`** and runs the playbook. Set **RHSM username/password** for the BMs (or use **`secrets.auto.tfvars`** with CLI). Set **No** only if you will run Ansible manually. You still need the **dynamic group** and **instance principal** policies under **Prerequisites**; more detail → **[STACK-REFERENCE.md — Run Ansible from head](STACK-REFERENCE.md#run-ansible-from-head-node-resource-manager)**.
 
 **If something fails:** bare metal **create timeout** → increase **BM instance create timeout** (variable label may still say “cluster network”; e.g. `2h`). Empty Ansible **`[bm]`** inventory → increase **BM pool ready wait** (e.g. `15m`) or confirm **`user_data`** was applied (replace head after enabling Ansible).
 
@@ -262,7 +265,23 @@ Console path: **Resource Manager → Stacks → Create stack**.
 - **Head (Oracle Linux):** `ssh opc@<head_public_ip>`
 - **BM nodes (RHEL), from the head:** `ssh cloud-user@<bm_private_ip>`
 
-If you enabled Ansible from the head, check on the head: **`/var/log/oci-hpc-ansible-bootstrap.log`**.
+If **Run Ansible from head** was **Yes** / `true` when the head was **first** created, check on the head: **`/var/log/oci-hpc-ansible-bootstrap.log`** and **`/opt/oci-hpc-ansible`**.
+
+### `/opt/oci-hpc-ansible` or the bootstrap log is missing
+
+That means the head was launched **without** Ansible `user_data` (variable **`run_ansible_from_head`** was **false** in Resource Manager or Terraform, or you are on an **old** head from before it was enabled). Terraform **does not** install playbooks over SSH later—only **cloud-init** on **first boot** does.
+
+**Fix:** Set **`run_ansible_from_head = true`**, run **Apply** again with **replace** on the head instance so OCI recreates it and runs `user_data` once:
+
+```bash
+terraform apply -replace=oci_core_instance.head_node
+```
+
+In **Resource Manager**: edit the stack variable **Run Ansible from head at first boot** to **Yes**, then run **Apply** and use **Create plan** with a **targeted** replace for the head resource if your workflow supports it, or add a temporary change that forces head replacement (same Terraform replace as above if using the CLI against the RM workspace).
+
+### Can Resource Manager automate this?
+
+**Yes, in one stack Apply.** Resource Manager only runs **Terraform**; the “automation” is Terraform setting **`metadata.user_data`** on the head instance. On **first boot**, **cloud-init** runs **`/opt/oci-hpc-bootstrap.sh`**, which unpacks playbooks and runs Ansible. You do **not** need a separate RM job type—just **`run_ansible_from_head = true`** (now the **default** in `schema.yaml`) plus **IAM** (dynamic group) and **RHSM** for the BMs as described in **Prerequisites**.
 
 **Troubleshooting** (SSH, timeouts, Ansible, `/etc/hosts`) → **[STACK-REFERENCE.md](STACK-REFERENCE.md#troubleshooting)**.
 

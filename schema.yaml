@@ -1,6 +1,6 @@
 title: "Kove Infra Build on OCI"
 description: "Kove infra: head node plus bare metal RHEL 8.8 workers (BM.Optimized3.36 by default) on OCI."
-informationalText: "Provide one RHEL 8.8 image OCID for BM nodes. Use Oracle Linux for the head when head image is left empty. Tenancy and region are pre-filled from your session. Resource Manager zip: Git tag Kove-RHEL88-OCI."
+informationalText: "Provide one RHEL 8.8 image OCID for BM nodes. Use Oracle Linux for the head when head image is left empty. **Run Ansible from head** defaults to **Yes**: cloud-init installs playbooks under /opt/oci-hpc-ansible on first boot (set No only if you will run Ansible manually). You still need dynamic-group instance-principal policies and RHSM for RHEL BMs. If that folder is missing, the head was created with Ansible off—turn it on and replace the head instance, then Apply again. Tenancy/region are pre-filled. Zip source: Git tag Kove-RHEL88-OCI."
 schemaVersion: 1.1.0
 version: "20190304"
 locale: "en"
@@ -12,6 +12,16 @@ variableGroups:
       - ssh_public_key
       - bm_node_image_ocid
       - head_node_image_ocid
+
+  - title: "Ansible from head (recommended)"
+    variables:
+      - run_ansible_from_head
+      - bm_pool_ready_wait
+      - instance_ssh_user
+      - head_node_ssh_user
+      - rhsm_username
+      - rhsm_password
+      - rdma_ping_target
 
   - title: "Networking"
     variables:
@@ -26,16 +36,6 @@ variableGroups:
       - bm_generic_platform_config
       - bm_boot_volume_size_gbs
       - cluster_network_create_timeout
-
-  - title: "Ansible from head"
-    variables:
-      - run_ansible_from_head
-      - bm_pool_ready_wait
-      - instance_ssh_user
-      - head_node_ssh_user
-      - rhsm_username
-      - rhsm_password
-      - rdma_ping_target
 
   - title: "Stack context (pre-filled from your session)"
     variables:
@@ -168,8 +168,8 @@ variables:
   run_ansible_from_head:
     type: boolean
     title: "Run Ansible from head at first boot"
-    description: "If true, head node runs RHEL + RDMA Ansible playbook at first boot. Requires head node in a dynamic group with instance principal (see README)."
-    default: false
+    description: "Yes = embed playbooks in head user_data; cloud-init creates /opt/oci-hpc-ansible and runs the playbook after boot (Resource Manager automates this in one Apply). Requires dynamic group + instance principal policies, and RHSM credentials for RHEL BMs. No = no user_data; paths and log will not exist until you enable this and replace the head instance."
+    default: true
     required: true
 
   bm_pool_ready_wait:

@@ -140,8 +140,8 @@ variable "bm_boot_volume_size_gbs" {
 
 variable "run_ansible_from_head" {
   type        = bool
-  description = "If true, Terraform embeds ./playbooks as a zip in head user_data; cloud-init runs scripts/head_bootstrap.sh.tpl which unpacks to /opt/oci-hpc-ansible and runs configure-rhel-rdma.yml. OCI runs user_data only on first boot—replace the head instance after changing this. Requires dynamic group + instance principal policies for OCI CLI from the head."
-  default     = false
+  description = "If true, Terraform embeds ./playbooks as a zip in head user_data; cloud-init runs scripts/head_bootstrap.sh.tpl which unpacks to /opt/oci-hpc-ansible and runs configure-rhel-rdma.yml. OCI runs user_data only on first boot—replace the head instance after changing this. Requires dynamic group + instance principal policies for OCI CLI from the head. Default true so Resource Manager and fresh clones get automation unless explicitly disabled."
+  default     = true
 }
 
 variable "rhsm_username" {

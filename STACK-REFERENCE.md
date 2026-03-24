@@ -70,7 +70,7 @@ That stack deploys **regular flex VMs** via **`oci_core_instance`** with explici
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `run_ansible_from_head` | Boolean | false | If true, head node runs the RHEL + RDMA Ansible playbook at first boot via cloud-init |
+| `run_ansible_from_head` | Boolean | true | If true, head node runs the RHEL + RDMA Ansible playbook at first boot via cloud-init (`/opt/oci-hpc-ansible`). Set false only to skip `user_data`. |
 | `instance_ssh_user` | String | "cloud-user" | SSH user on BM nodes (RHEL; typically `cloud-user`) |
 | `head_node_ssh_user` | String | `opc` | SSH user on head node (`opc` for Oracle Linux head image). |
 | `rhsm_username` | String | "" | RHSM username (required when `run_ansible_from_head = true`) |
@@ -80,7 +80,7 @@ That stack deploys **regular flex VMs** via **`oci_core_instance`** with explici
 
 **Recommended:** Set **Head node image** to an **Oracle Linux** image. The head then uses free OL repos (no RHSM), installs Ansible and OCI CLI, and runs the playbook; Ansible registers **RHEL only on the BM nodes** and does all installs there.
 
-When `run_ansible_from_head = true`, the head node must be in an OCI **dynamic group** with a policy that allows **instance principal** to list instance pool instances and instance VNICs in the compartment. See [Run Ansible from head node](#run-ansible-from-head-node-resource-manager) for setup.
+When `run_ansible_from_head = true`, the head node must be in an OCI **dynamic group** with a policy that allows **instance principal** to read instances and VNICs in the compartment (Terraform usually embeds BM private IPs; OCI CLI may still list VNICs). See [Run Ansible from head node](#run-ansible-from-head-node-resource-manager) for setup.
 
 ## Deployment Steps
 
@@ -88,7 +88,7 @@ When `run_ansible_from_head = true`, the head node must be in an OCI **dynamic g
 
 **One-click deploy:** Use the [Deploy to Oracle Cloud](https://cloud.oracle.com/resourcemanager/stacks/create?zipUrl=https://github.com/ncusato/kove-terraform-oci/archive/refs/tags/Kove-RHEL88-OCI.zip) button in the [README](README.md). Source ref is Git tag **`Kove-RHEL88-OCI`**.
 
-**To get automatic cluster setup (Ansible at first boot):** Set **"Run Ansible from head at first boot"** to **true** and set RHSM username/password for RHEL BMs. **SSH login:** Your **SSH public key** is on the head and BMs; a **Terraform-generated ED25519** key pair is also on all nodes. The bootstrap embeds the **generated private key** (small) on the head so Ansible can SSH to BMs ? **you do not pass a separate SSH private key variable.** If **Run Ansible from head** is **false**, the head has no bootstrap and no cluster `/etc/hosts` entries unless you configure manually.
+**To get automatic cluster setup (Ansible at first boot):** The stack wizard defaults **"Run Ansible from head at first boot"** to **Yes**; set RHSM username/password for RHEL BMs. **SSH login:** Your **SSH public key** is on the head and BMs; a **Terraform-generated ED25519** key pair is also on all nodes. The bootstrap embeds the **generated private key** (small) on the head so Ansible can SSH to BMs ? **you do not pass a separate SSH private key variable.** If **Run Ansible from head** is **No** / false, the head has **no** `user_data`: **`/opt/oci-hpc-ansible`** and the bootstrap log will **not** exist until you enable the option and **replace** the head instance, then Apply again.
 
 #### 1. Prepare Stack Archive (manual upload)
 
@@ -183,7 +183,7 @@ After deployment, Terraform provides:
 
 ### Run Ansible from head node (Resource Manager)
 
-If you set **Run Ansible from head at first boot** to **true** in the stack, the head node runs the RHEL + RDMA playbook automatically at first boot. It uses **instance principal** to discover BM node private IPs from the instance pool (no API keys on the instance).
+If you set **Run Ansible from head at first boot** to **Yes** / true in the stack, the head node runs the RHEL + RDMA playbook automatically at first boot. Terraform embeds **BM private IPs** (and OCIDs) in bootstrap `user_data`; the OCI CLI on the head uses **instance principal** if it must resolve VNICs (no API keys on disk).
 
 **Requirement:** Put the head node in a **dynamic group** and grant that group permission so the OCI CLI can use **instance principal**. The bootstrap script sets `OCI_CLI_AUTH=instance_principal` and writes `~/.oci/config` with `auth=instance_principal`, `region`, and `tenancy` so `oci` commands work from the head (including manual runs). You must create the dynamic group and policies **before** (or right after) the stack runs, then re-run the bootstrap if it had already failed.
 
@@ -217,7 +217,7 @@ If you set **Run Ansible from head at first boot** to **true** in the stack, the
 
 #### Bootstrap didn't run ? diagnose on the head node
 
-**No bootstrap log at all?** If `/var/log/oci-hpc-ansible-bootstrap.log` and `/opt/oci-hpc-bootstrap.sh` don't exist, the stack was applied with **"Run Ansible from head at first boot" = false** (the default). Enable it in the stack variables and **re-apply** (or destroy and create a new stack with it enabled). The bootstrap script is only injected into the head node when this option is true.
+**No bootstrap log at all?** If `/var/log/oci-hpc-ansible-bootstrap.log` and `/opt/oci-hpc-bootstrap.sh` don't exist, the head was created with **"Run Ansible from head" = No** / `run_ansible_from_head = false`, or the head predates enabling it. Enable it in the stack (or `terraform.tfvars`) and **replace the head instance** so new `user_data` runs on first boot: `terraform apply -replace=oci_core_instance.head_node`. The wizard default is now **Yes**; existing stacks may still have the old default until you edit variables.
 
 SSH to the head node (`ssh opc@<head_node_public_ip>` or `cloud-user@...`), then run:
 

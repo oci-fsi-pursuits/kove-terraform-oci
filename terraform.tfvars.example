@@ -32,9 +32,9 @@ cluster_network_create_timeout = ""
 bm_pool_ready_wait             = "10m"
 bm_boot_volume_size_gbs        = 120
 
-# Deliver ./playbooks to head at /opt/oci-hpc-ansible and run Ansible on first boot. false = no zip in user_data (nothing on the VM).
-# After changing false→true, replace the head: terraform apply -replace=oci_core_instance.head_node
-run_ansible_from_head = false
+# true (default): cloud-init creates /opt/oci-hpc-ansible on first boot. false = no user_data on head.
+# After changing this on an existing stack, replace the head: terraform apply -replace=oci_core_instance.head_node
+run_ansible_from_head = true
 rhsm_username         = ""
 rhsm_password         = ""
 rdma_ping_target      = ""
