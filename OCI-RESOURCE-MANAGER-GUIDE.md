@@ -33,7 +33,8 @@ Add this to your `README.md`:
 Replace:
 - `YOUR_USERNAME` – your GitHub username or org
 - `YOUR_REPO` – repository name
-- `main` or `master` – branch name (this repo’s README deploy button uses **`https://github.com/ncusato/kove-terraform-oci/archive/refs/heads/master.zip`**), **or** use a **tag** for a pinned snapshot, e.g. `https://github.com/YOUR_USERNAME/YOUR_REPO/archive/refs/tags/v1.0.0.zip`.
+- **Tag** (recommended for a sane default stack name in the console, e.g. `Kove-Infra-OCI.zip-…` instead of `master.zip-…`): this repo’s README button uses **`https://github.com/ncusato/kove-terraform-oci/archive/refs/tags/Kove-Infra-OCI.zip`**. Move the **`Kove-Infra-OCI`** tag to **`master`** when you cut a release.
+- **`main` or `master` branch** – e.g. `https://github.com/YOUR_USERNAME/YOUR_REPO/archive/refs/heads/main.zip` for the latest commit without maintaining a tag.
 
 When clicked, this:
 1. Downloads the archive from the `zipUrl` you set (branch or tag)

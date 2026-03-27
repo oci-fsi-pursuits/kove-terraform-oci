@@ -1,6 +1,8 @@
 # Kove Infra Build on OCI
 
-[![Deploy to Oracle Cloud](https://oci-resourcemanager-plugin.plugins.oci.oraclecloud.com/latest/deploy-to-oracle-cloud.svg)](https://cloud.oracle.com/resourcemanager/stacks/create?zipUrl=https://github.com/ncusato/kove-terraform-oci/archive/refs/heads/master.zip)
+[![Deploy to Oracle Cloud](https://oci-resourcemanager-plugin.plugins.oci.oraclecloud.com/latest/deploy-to-oracle-cloud.svg)](https://cloud.oracle.com/resourcemanager/stacks/create?zipUrl=https://github.com/ncusato/kove-terraform-oci/archive/refs/tags/Kove-Infra-OCI.zip)
+
+The button uses Git tag **`Kove-Infra-OCI`** so Resource Manager suggests a readable default stack name (from the tag), not `master.zip-…`. The tag is moved to match **`master`** when this stack is released. For the absolute latest commit without waiting for a tag update, create a stack from **`https://github.com/ncusato/kove-terraform-oci/archive/refs/heads/master.zip`** (upload or paste as package URL).
 
 ## Table of contents
 
@@ -254,8 +256,10 @@ Use the image **OCID** in **Step 3**.
 
 ### Step 2 — Create the stack in Resource Manager
 
-1. Click **Deploy to Oracle Cloud** at the top of this page, **or**
+1. Click **Deploy to Oracle Cloud** at the top of this page (package is tag **`Kove-Infra-OCI`** for a sensible default **Name** in step 1), **or**
 2. Upload a zip of the Terraform configuration (**Resource Manager → Stacks → Create stack**).
+
+On **Stack information**, you can set **Name** to something like **`kove-infra-<region>`** if you prefer; the console may pre-fill from the zip filename.
 
 Include the Terraform files, **`schema.yaml`**, **`scripts/`**, **`playbooks/`**, and **`inventory.tpl`** if present. Details: **[STACK-REFERENCE.md — Deployment steps](STACK-REFERENCE.md#deployment-steps)**.
 
