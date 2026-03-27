@@ -126,13 +126,15 @@ You need a **RHEL 8.8** disk image in your compartment as a **custom image** (qc
 
    ![Navigate to Image Builder in the Hybrid Cloud Console](docs/images/rhel-image-builder/deploy-image-navigation.png)
 
-3. **Open Image Builder** and start a new blueprint / image workflow.
+3. In Image Builder, **click Import image** (or equivalent **Import blueprint**) to start from a blueprint file.
 
-4. **Download the blueprint TOML** from this repository: **[`oci_8.8_baremetal.toml`](oci_8.8_baremetal.toml)** (same content as the collapsible reference below). You will import this file in the console.
+   ![Click Import image in Image Builder](docs/images/rhel-image-builder/import-blueprint.png)
 
-5. **Import the blueprint** in Image Builder (upload the TOML you downloaded).
+4. **Download the blueprint TOML** from this repository: **[`oci_8.8_baremetal.toml`](oci_8.8_baremetal.toml)** (same content as the collapsible reference below). You will use this file in the next step.
 
-   ![Import blueprint in Image Builder](docs/images/rhel-image-builder/import-blueprint.png)
+5. **Select or upload the TOML** you downloaded and continue the import flow in the console.
+
+   ![Import the blueprint TOML](docs/images/rhel-image-builder/import-toml.png)
 
 6. **Step through the wizard** and select **Oracle Cloud** as the target deployment / upload target when offered.
 
