@@ -33,12 +33,20 @@ $LOCAL_KEY = "C:\\Users\\ncusato\\.ssh\\id_ed25519"
 scp -i "$LOCAL_KEY" "$LOCAL_KEY" "opc@$HEAD_IP:~/.ssh/head_login_key"
 ```
 
-## 2) On head, run one script
+## 2) On head, create config + run one script
 
 ```bash
 cd ~
 chmod 600 ~/.ssh/head_login_key
-bash /opt/oci-hpc-ansible/scripts/setup_bm_passwordless_ssh.sh || bash ~/setup_bm_passwordless_ssh.sh
+cp /opt/oci-hpc-ansible/scripts/kove-bm-bootstrap.conf.example ~/kove-bm-bootstrap.conf 2>/dev/null || true
+# If you keep a repo checkout on head instead:
+cp ~/kove-oci-build-2/scripts/kove-bm-bootstrap.conf.example ~/kove-bm-bootstrap.conf 2>/dev/null || true
+
+# Edit ~/kove-bm-bootstrap.conf (BM_IPS, key path, RDMA interface, cron schedule)
+vi ~/kove-bm-bootstrap.conf
+
+CONFIG_FILE=~/kove-bm-bootstrap.conf bash /opt/oci-hpc-ansible/scripts/setup_bm_passwordless_ssh.sh || \
+CONFIG_FILE=~/kove-bm-bootstrap.conf bash ~/setup_bm_passwordless_ssh.sh
 ```
 
 If the script is in your repo checkout on head:
@@ -53,7 +61,8 @@ This script will:
 - use `~/.ssh/head_login_key` to reach BM nodes,
 - append head's `~/.ssh/id_ed25519.pub` to BM `authorized_keys`,
 - verify passwordless SSH with `~/.ssh/id_ed25519`,
-- update `/etc/hosts` on head and each reachable BM with a managed `# BEGIN KOVE BM HOSTS` block.
+- update `/etc/hosts` on head and each reachable BM with a managed `# BEGIN KOVE BM HOSTS` block,
+- create/update RDMA auth refresh cron on each reachable BM (`/etc/cron.d/oci-cn-auth-refresh` + `/usr/local/bin/oci-cn-auth-refresh.sh`).
 
 ## 3) Test simple SSH to a BM
 
@@ -72,13 +81,19 @@ BM_IPS="172.16.6.214 172.16.7.211 172.16.5.157 172.16.7.29" ./scripts/setup_bm_p
 Different bootstrap key path:
 
 ```bash
-BOOTSTRAP_KEY=~/.ssh/my_local_key ./scripts/setup_bm_passwordless_ssh.sh
+BOOTSTRAP_KEY_PATH=~/.ssh/my_local_key ./scripts/setup_bm_passwordless_ssh.sh
 ```
 
 Disable `/etc/hosts` updates:
 
 ```bash
 DO_HOSTS_UPDATE=false ./scripts/setup_bm_passwordless_ssh.sh
+```
+
+Disable RDMA cron setup:
+
+```bash
+ENABLE_RDMA_CRON=false ./scripts/setup_bm_passwordless_ssh.sh
 ```
 
 ## If still failing

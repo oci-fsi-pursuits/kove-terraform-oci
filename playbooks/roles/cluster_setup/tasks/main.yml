@@ -7,7 +7,7 @@
 
 - name: Set cluster SSH user fact (per-host; prefer inventory ansible_user over global cluster_ssh_user)
   ansible.builtin.set_fact:
-    _cluster_user: "{{ ansible_user | default(cluster_ssh_user) | default('opc') }}"
+    _cluster_user: "{{ ansible_user | default(cluster_ssh_user_override | default(cluster_ssh_user | default('cloud-user'))) }}"
 
 - name: Ensure .ssh directory exists for cluster user
   ansible.builtin.file:

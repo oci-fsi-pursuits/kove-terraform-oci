@@ -28,6 +28,10 @@ cluster_display_name_prefix  = "bm"
 bm_capacity_reservation_id   = ""
 bm_generic_platform_config   = false
 
+# Optional naming toggle (off by default)
+enable_custom_names = false
+custom_name_prefix  = "kove"
+
 bm_node_count                  = 4
 # Empty = 2h default per BM instance create. Override e.g. "3h" for slow regions.
 cluster_network_create_timeout = ""
@@ -41,8 +45,8 @@ rhsm_username         = ""
 rhsm_password         = ""
 rdma_ping_target      = ""
 
-# BM inventory user: opc for Oracle Linux / typical OCI RHEL; cloud-user only if your image uses it
-instance_ssh_user  = "opc"
+# BM inventory user for this RHEL flow
+instance_ssh_user  = "cloud-user"
 head_node_ssh_user = "opc"
 
 # OCI serial console via instance console connection (SSH tunnel + VNC); uses ssh_public_key

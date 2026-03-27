@@ -290,7 +290,11 @@ sudo systemctl start oci-cn-auth-refresh.service
 sudo tail -n 100 /var/log/oci-cn-auth-cron.log
 ```
 
-**`Permission denied (publickey)` / server refuses your RSA key:** Newer **OpenSSH** often disables **`ssh-rsa`** user keys even though OCI still injects them. This stack (after a **head replace** with current Terraform) adds **`/etc/ssh/sshd_config.d/98-oci-allow-rsa-userkeys.conf`** so your metadata RSA key works again. **Workaround without replacing the VM:** use the Terraform-generated **ED25519** key (same one Ansible uses to reach BMs):
+**`Permission denied (publickey)` / server refuses your RSA key:** Newer **OpenSSH** often disables **`ssh-rsa`** user keys even though OCI still injects them. This stack (after a **head replace** with current Terraform) adds **`/etc/ssh/sshd_config.d/98-oci-allow-rsa-userkeys.conf`** so your metadata RSA key works again.
+
+**Preferred workaround without replacing the VM:** copy the same private key you used to log into the head onto the head as `~/.ssh/head_login_key`, then run the helper in **`docs/HEAD-BM-SSH-README.md`** to set up passwordless BM access safely.
+
+**Emergency fallback:** use the Terraform-generated **ED25519** key (same one Ansible uses to reach BMs):
 
 ```bash
 terraform output -raw cluster_ssh_private_key_openssh > tf-head-ed25519.key

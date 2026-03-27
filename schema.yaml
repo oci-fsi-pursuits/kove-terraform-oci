@@ -18,10 +18,8 @@ variableGroups:
       - run_ansible_from_head
       - bm_pool_ready_wait
       - instance_ssh_user
-      - head_node_ssh_user
       - rhsm_username
       - rhsm_password
-      - rdma_ping_target
 
   - title: "Networking"
     variables:
@@ -34,17 +32,15 @@ variableGroups:
       - use_compute_agent
       - bm_imds_ssh_key_bootstrap
       - create_vnc
-      - cluster_display_name_prefix
       - bm_capacity_reservation_id
       - bm_generic_platform_config
       - bm_boot_volume_size_gbs
       - cluster_network_create_timeout
 
-
-  - title: "Stack context (pre-filled from your session)"
+  - title: "Optional Naming"
     variables:
-      - tenancy_ocid
-      - region
+      - enable_custom_names
+      - custom_name_prefix
 
 variables:
   tenancy_ocid:
@@ -52,12 +48,28 @@ variables:
     title: "Tenancy OCID"
     description: "Pre-filled from your session. Change only if deploying to a different tenancy."
     required: true
+    visible: false
 
   region:
     type: oci:identity:region:name
     title: "Region"
     description: "Pre-filled from your session. Change only if deploying to a different region."
     required: true
+    visible: false
+
+  enable_custom_names:
+    type: boolean
+    title: "Enable custom names"
+    description: "Off by default. When true, custom prefix is used for VCN/subnet/network display names and instance/cluster display names."
+    default: false
+    required: false
+
+  custom_name_prefix:
+    type: string
+    title: "Custom name prefix"
+    description: "Used only when Enable custom names is true. Example: kove-phx."
+    default: ""
+    required: false
 
   compartment_ocid:
     type: oci:identity:compartment:id
@@ -161,6 +173,7 @@ variables:
     description: "Prefix for compute cluster, BM instances, and head display names (e.g. kove, bm2)."
     default: "bm"
     required: false
+    visible: false
 
   bm_capacity_reservation_id:
     type: string
@@ -206,8 +219,8 @@ variables:
   instance_ssh_user:
     type: string
     title: "SSH user for BM nodes"
-    description: "Ansible SSH user for bare metal nodes. Default opc matches Oracle Linux and typical OCI RHEL/custom images. Use cloud-user only if that is your image default."
-    default: "opc"
+    description: "Ansible SSH user for bare metal nodes. Default cloud-user for this RHEL image flow."
+    default: "cloud-user"
     required: false
 
   head_node_ssh_user:
@@ -216,6 +229,7 @@ variables:
     description: "User on head node (opc for Oracle Linux, cloud-user for RHEL). Default opc matches the default Oracle Linux head image."
     default: "opc"
     required: false
+    visible: false
 
   rhsm_username:
     type: string
@@ -234,6 +248,7 @@ variables:
     title: "RDMA ping target IP"
     description: "Optional IP for RDMA ping check (e.g. another BM node's RDMA interface)."
     required: false
+    visible: false
 
 outputs:
   created_vcn_id:

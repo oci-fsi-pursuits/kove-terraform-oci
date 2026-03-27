@@ -73,6 +73,24 @@ data "oci_core_images" "ol8_head" {
   sort_order               = "DESC"
 }
 
+locals {
+  custom_name_prefix_effective = trimspace(var.custom_name_prefix) != "" ? trimspace(var.custom_name_prefix) : trimspace(var.cluster_display_name_prefix)
+  naming_prefix                = var.enable_custom_names ? local.custom_name_prefix_effective : "cluster"
+  # Keep static defaults unless explicitly toggled on.
+  vcn_name            = var.enable_custom_names ? "${local.naming_prefix}-vcn" : "cluster-vcn"
+  igw_name            = var.enable_custom_names ? "${local.naming_prefix}-igw" : "cluster-igw"
+  nat_name            = var.enable_custom_names ? "${local.naming_prefix}-nat" : "cluster-nat"
+  public_rt_name      = var.enable_custom_names ? "${local.naming_prefix}-public-rt" : "cluster-public-rt"
+  private_rt_name     = var.enable_custom_names ? "${local.naming_prefix}-private-rt" : "cluster-private-rt"
+  public_sl_name      = var.enable_custom_names ? "${local.naming_prefix}-public-sl" : "cluster-public-sl"
+  private_sl_name     = var.enable_custom_names ? "${local.naming_prefix}-private-sl" : "cluster-private-sl"
+  public_subnet_name  = var.enable_custom_names ? "${local.naming_prefix}-public-subnet" : "cluster-public-subnet"
+  private_subnet_name = var.enable_custom_names ? "${local.naming_prefix}-private-subnet" : "cluster-private-subnet"
+  head_name           = var.enable_custom_names ? "${local.naming_prefix}-head-node" : "head-node"
+  compute_cluster_name = var.enable_custom_names ? "${local.naming_prefix}-compute-cluster" : "compute-cluster"
+  bm_name_prefix      = var.enable_custom_names ? "${local.naming_prefix}-bm" : "bm"
+}
+
 # -------------------------------------------------------------------
 # Networking (optional create vs existing)
 # -------------------------------------------------------------------
@@ -82,10 +100,10 @@ resource "oci_core_virtual_network" "this" {
   count          = var.use_existing_vcn ? 0 : 1
   cidr_block     = "10.0.0.0/16"
   compartment_id = var.compartment_ocid
-  display_name   = "${var.cluster_display_name_prefix}-vcn"
+  display_name   = local.vcn_name
   # OCI VCN dns_label: alphanumeric, max 15 chars (sanitize prefix; avoid regex* functions for older TF quirks).
   dns_label = substr(
-    length(trimspace(replace(replace(lower(var.cluster_display_name_prefix), "-", ""), "_", ""))) > 0 ? replace(replace(lower(var.cluster_display_name_prefix), "-", ""), "_", "") : "clustervcn",
+    length(trimspace(replace(replace(lower(local.naming_prefix), "-", ""), "_", ""))) > 0 ? replace(replace(lower(local.naming_prefix), "-", ""), "_", "") : "clustervcn",
     0,
     15
   )
@@ -94,7 +112,7 @@ resource "oci_core_virtual_network" "this" {
 resource "oci_core_internet_gateway" "this" {
   count          = var.use_existing_vcn ? 0 : 1
   compartment_id = var.compartment_ocid
-  display_name   = "${var.cluster_display_name_prefix}-igw"
+  display_name   = local.igw_name
   enabled        = true
   vcn_id         = oci_core_virtual_network.this[0].id
 }
@@ -102,14 +120,14 @@ resource "oci_core_internet_gateway" "this" {
 resource "oci_core_nat_gateway" "this" {
   count          = var.use_existing_vcn ? 0 : 1
   compartment_id = var.compartment_ocid
-  display_name   = "${var.cluster_display_name_prefix}-nat"
+  display_name   = local.nat_name
   vcn_id         = oci_core_virtual_network.this[0].id
 }
 
 resource "oci_core_route_table" "public" {
   count          = var.use_existing_vcn ? 0 : 1
   compartment_id = var.compartment_ocid
-  display_name   = "${var.cluster_display_name_prefix}-public-rt"
+  display_name   = local.public_rt_name
   vcn_id         = oci_core_virtual_network.this[0].id
 
   route_rules {
@@ -122,7 +140,7 @@ resource "oci_core_route_table" "public" {
 resource "oci_core_route_table" "private" {
   count          = var.use_existing_vcn ? 0 : 1
   compartment_id = var.compartment_ocid
-  display_name   = "cluster-private-rt"
+  display_name   = local.private_rt_name
   vcn_id         = oci_core_virtual_network.this[0].id
 
   route_rules {
@@ -136,7 +154,7 @@ resource "oci_core_route_table" "private" {
 resource "oci_core_security_list" "public" {
   count          = var.use_existing_vcn ? 0 : 1
   compartment_id = var.compartment_ocid
-  display_name   = "${var.cluster_display_name_prefix}-public-sl"
+  display_name   = local.public_sl_name
   vcn_id         = oci_core_virtual_network.this[0].id
 
   egress_security_rules {
@@ -170,7 +188,7 @@ resource "oci_core_security_list" "public" {
 resource "oci_core_security_list" "private" {
   count          = var.use_existing_vcn ? 0 : 1
   compartment_id = var.compartment_ocid
-  display_name   = "${var.cluster_display_name_prefix}-private-sl"
+  display_name   = local.private_sl_name
   vcn_id         = oci_core_virtual_network.this[0].id
 
   egress_security_rules {
@@ -188,7 +206,7 @@ resource "oci_core_security_list" "private" {
 resource "oci_core_subnet" "public" {
   count                      = var.use_existing_vcn ? 0 : 1
   compartment_id             = var.compartment_ocid
-  display_name               = "cluster-public-subnet"
+  display_name               = local.public_subnet_name
   vcn_id                     = oci_core_virtual_network.this[0].id
   cidr_block                 = "10.0.1.0/24"
   route_table_id             = oci_core_route_table.public[0].id
@@ -201,7 +219,7 @@ resource "oci_core_subnet" "public" {
 resource "oci_core_subnet" "private" {
   count                      = var.use_existing_vcn ? 0 : 1
   compartment_id             = var.compartment_ocid
-  display_name               = "${var.cluster_display_name_prefix}-private-subnet"
+  display_name               = local.private_subnet_name
   vcn_id                     = oci_core_virtual_network.this[0].id
   cidr_block                 = "10.0.2.0/24"
   route_table_id             = oci_core_route_table.private[0].id
@@ -291,7 +309,7 @@ resource "oci_core_instance" "head_node" {
   # After BM nodes exist (Ansible bootstrap needs OCIDs / private IPs in user_data).
   depends_on = [time_sleep.wait_bm_instances]
 
-  display_name = "${var.cluster_display_name_prefix}-head-node"
+  display_name = local.head_name
   shape        = "VM.Standard.E6.Flex"
 
   shape_config {
@@ -348,7 +366,7 @@ resource "oci_core_compute_cluster" "bm_compute" {
 
   availability_domain = local.cluster_network_ad
   compartment_id      = var.compartment_ocid
-  display_name        = "${var.cluster_display_name_prefix}-compute-cluster"
+  display_name        = local.compute_cluster_name
 }
 
 resource "oci_core_instance" "bm_compute_nodes" {
@@ -357,7 +375,7 @@ resource "oci_core_instance" "bm_compute_nodes" {
 
   availability_domain = local.cluster_network_ad
   compartment_id      = var.compartment_ocid
-  display_name        = "${var.cluster_display_name_prefix}-bm-${count.index + 1}"
+  display_name        = "${local.bm_name_prefix}-${count.index + 1}"
   shape               = var.bm_node_shape
 
   capacity_reservation_id = trimspace(var.bm_capacity_reservation_id) != "" ? var.bm_capacity_reservation_id : null

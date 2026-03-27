@@ -29,8 +29,6 @@
   hosts: all
   become: true
   gather_facts: true
-  vars:
-    cluster_ssh_user: "{{ cluster_ssh_user | default(ansible_user) | default('opc') }}"
   tasks:
     - name: Configure /etc/hosts and passwordless SSH
       include_role:
@@ -42,7 +40,6 @@
   gather_facts: true
   vars:
     bm_prefix: "bm-node-"
-    cluster_ssh_user: "{{ cluster_ssh_user | default(ansible_user) | default('opc') }}"
   tasks:
     - name: Ensure RHEL nodes are registered and prepared (BM nodes; skip Oracle Linux head)
       include_role:

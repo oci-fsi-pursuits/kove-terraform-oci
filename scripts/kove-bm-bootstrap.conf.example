@@ -1,0 +1,24 @@
+# Copy to ~/kove-bm-bootstrap.conf on the head node and edit.
+# This drives scripts/setup_bm_passwordless_ssh.sh.
+
+# Same private key you use from your laptop to login to head/bastion.
+BOOTSTRAP_KEY_PATH=~/.ssh/head_login_key
+
+# BM private IP list (space separated).
+BM_IPS="172.16.6.214 172.16.7.211 172.16.5.157 172.16.7.29"
+
+# Login users to try on each BM.
+PRIMARY_USER=cloud-user
+FALLBACK_USERS="opc ec2-user"
+
+# Head passwordless identity key to install/verify.
+HEAD_IDENTITY_KEY=~/.ssh/id_ed25519
+HEAD_IDENTITY_PUB=~/.ssh/id_ed25519.pub
+
+# Optional /etc/hosts management.
+DO_HOSTS_UPDATE=true
+
+# Optional RDMA auth refresh cron setup on each BM.
+ENABLE_RDMA_CRON=true
+RDMA_INTERFACE=eth2
+RDMA_CRON_SCHEDULE="*/30 * * * *"

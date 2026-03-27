@@ -37,8 +37,20 @@ variable "bm_node_count" {
 
 variable "cluster_display_name_prefix" {
   type        = string
-  description = "Prefix for cluster network, pool, instance configuration, and head display names (change for a visibly distinct deployment)."
+  description = "Legacy name prefix for backward compatibility. Prefer enable_custom_names + custom_name_prefix."
   default     = "bm"
+}
+
+variable "enable_custom_names" {
+  type        = bool
+  description = "If true, apply custom_name_prefix to VCN/subnet/network resource display names and instance/cluster display names. Off by default."
+  default     = false
+}
+
+variable "custom_name_prefix" {
+  type        = string
+  description = "Custom name prefix used when enable_custom_names=true (e.g. kove-phx). If empty, falls back to cluster_display_name_prefix."
+  default     = ""
 }
 
 variable "bm_node_shape" {
@@ -178,8 +190,8 @@ variable "rdma_ping_target" {
 
 variable "instance_ssh_user" {
   type        = string
-  description = "SSH user for BM nodes in Ansible inventory. OCI images (Oracle Linux and most OCI RHEL/custom) use opc. Use cloud-user only if your image provisions that account."
-  default     = "opc"
+  description = "SSH user for BM nodes in Ansible inventory. Default cloud-user for this RHEL image flow."
+  default     = "cloud-user"
 }
 
 variable "head_node_ssh_user" {
