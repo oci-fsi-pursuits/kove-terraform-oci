@@ -264,6 +264,7 @@ Console path: **Resource Manager → Stacks → Create stack**.
 - Open the job **Outputs** for **head public IP** and **BM private IPs** (see [outputs](STACK-REFERENCE.md#terraform-outputs) in the reference).
 - **Head (Oracle Linux):** `ssh opc@<head_public_ip>`
 - **BM nodes (RHEL), from the head:** `ssh cloud-user@<bm_private_ip>`
+- **Optional helper:** If BM key/user mapping is inconsistent after first boot, run the one-shot head script in **`docs/HEAD-BM-SSH-README.md`** to install passwordless SSH (`id_ed25519`) and maintain a managed BM `/etc/hosts` block on head + BMs.
 
 **`Permission denied (publickey)` / server refuses your RSA key:** Newer **OpenSSH** often disables **`ssh-rsa`** user keys even though OCI still injects them. This stack (after a **head replace** with current Terraform) adds **`/etc/ssh/sshd_config.d/98-oci-allow-rsa-userkeys.conf`** so your metadata RSA key works again. **Workaround without replacing the VM:** use the Terraform-generated **ED25519** key (same one Ansible uses to reach BMs):
 
