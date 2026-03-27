@@ -16,13 +16,7 @@ Bare metal capacity is **regional and per availability domain (AD)**. Try:
 
 ## How can I check if RDMA is authenticated?
 
-On the **head node**, open the **README in the default SSH user’s home directory** (for Oracle Linux the user is often `opc`):
-
-```bash
-cat ~/README.md
-```
-
-That file summarizes how to verify **RDMA re-auth** on the bare metal nodes (timer, script, rerun playbook). The same checks are also in **[README.md, Step 5](README.md#step-5-log-in-and-verify)**.
+Use the **RDMA re-auth** checks on a **BM node** (SSH from the head) described in **[README.md, Step 5](README.md#step-5-log-in-and-verify)** (systemd timer, script path, rerun playbook from `/opt/oci-hpc-ansible` if needed).
 
 ## The custom RHEL image fails to launch (404 / not found)
 

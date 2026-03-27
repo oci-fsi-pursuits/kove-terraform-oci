@@ -261,8 +261,8 @@ locals {
   }), "\r\n", "\n"), "\r", "\n")) : ""
 }
 
-# Single zip of playbooks to stay under OCI metadata limit (32KB). Only used when run_ansible_from_head = true.
-# Exclude site.yml (unused oci-hpc-style mega-playbook) — it pushes user_data over the limit when embedded.
+# Single zip of playbooks (only when run_ansible_from_head = true). Written as its own cloud-init file; bootstrap script stays small so user_data + ssh_authorized_keys stays under OCI’s 32 KiB metadata limit.
+# Exclude site.yml (oci-hpc mega-playbook) — unnecessary bulk.
 data "archive_file" "playbooks" {
   count       = var.run_ansible_from_head ? 1 : 0
   type        = "zip"
@@ -273,12 +273,13 @@ data "archive_file" "playbooks" {
 
 # Bootstrap script inputs (only used when run_ansible_from_head = true)
 locals {
-  extra_vars_yaml    = <<-EOT
+  # Omit stack_ssh_authorized_keys_lines: keys are already on instances via OCI metadata; including them here duplicated ~1–2KiB+ inside user_data (over limit).
+  extra_vars_yaml = <<-EOT
 rhsm_username: ${jsonencode(var.rhsm_username)}
 rhsm_password: ${jsonencode(var.rhsm_password)}
 rdma_ping_target: ${jsonencode(var.rdma_ping_target)}
 cluster_ssh_user: ${jsonencode(var.instance_ssh_user)}
-stack_ssh_authorized_keys_lines: ${jsonencode([for line in split("\n", replace(local.cluster_ssh_authorized_keys, "\r", "")) : trimspace(line) if trimspace(line) != ""])}
+stack_ssh_authorized_keys_lines: []
 EOT
   bm_private_ips_csv = var.run_ansible_from_head ? join(",", compact(oci_core_instance.bm_compute_nodes[*].private_ip)) : ""
   # Keep user_data under OCI 32KB: embed BM private IPs only (no OCID+VNIC jq loop in bootstrap).
@@ -336,11 +337,11 @@ resource "oci_core_instance" "head_node" {
     { ssh_authorized_keys = local.cluster_ssh_authorized_keys },
     {
       user_data = base64encode(replace(replace(templatefile("${path.module}/scripts/cloud_init_head.yaml.tpl", {
-        run_bootstrap         = var.run_ansible_from_head
-        bootstrap_script_b64  = var.run_ansible_from_head ? base64encode(replace(replace(templatefile("${path.module}/scripts/head_bootstrap.sh.tpl", local.bootstrap_template_vars), "\r\n", "\n"), "\r", "\n")) : ""
-        authorized_keys_b64   = base64encode(local.cluster_ssh_authorized_keys)
-        head_ssh_user         = trimspace(var.head_node_ssh_user) != "" ? trimspace(var.head_node_ssh_user) : "opc"
-        head_home_readme_b64  = base64encode(replace(replace(file("${path.module}/docs/HEAD-NODE-HOME-README.md"), "\r\n", "\n"), "\r", "\n"))
+        run_bootstrap          = var.run_ansible_from_head
+        bootstrap_script_b64   = var.run_ansible_from_head ? base64encode(replace(replace(templatefile("${path.module}/scripts/head_bootstrap.sh.tpl", local.bootstrap_template_vars), "\r\n", "\n"), "\r", "\n")) : ""
+        authorized_keys_b64    = base64encode(local.cluster_ssh_authorized_keys)
+        head_ssh_user          = trimspace(var.head_node_ssh_user) != "" ? trimspace(var.head_node_ssh_user) : "opc"
+        playbooks_zip_b64      = var.run_ansible_from_head ? filebase64(data.archive_file.playbooks[0].output_path) : ""
       }), "\r\n", "\n"), "\r", "\n"))
     }
   )

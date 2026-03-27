@@ -1,6 +1,6 @@
 # Kove stack — quick notes (head node)
 
-This file is copied to the head node’s home directory at first boot. Full documentation is in the Git repository: **README.md**, **FAQ.md**, and **STACK-REFERENCE.md**.
+Reference copy in the repo only (not written to the head automatically—OCI instance **metadata** is capped at 32 KiB). Full documentation: **README.md**, **FAQ.md**, **STACK-REFERENCE.md**.
 
 ## RDMA authentication on bare metal nodes
 

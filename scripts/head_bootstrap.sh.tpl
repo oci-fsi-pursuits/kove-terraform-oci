@@ -12,7 +12,6 @@ do_bootstrap() {
   SSH_USER="${instance_ssh_user}"
   HEAD_SSH_USER="${head_node_ssh_user}"
   ANSIBLE_DIR="/opt/oci-hpc-ansible"
-  PAYLOAD_B64="${payload_b64}"
   EXTRA_VARS_B64="${extra_vars_b64}"
   RHSM_USER_B64="${rhsm_username_b64}"
   RHSM_PASS_B64="${rhsm_password_b64}"
@@ -68,16 +67,18 @@ do_bootstrap() {
 
   echo "$(date) B: zip..."
   mkdir -p "$ANSIBLE_DIR"
-  echo "$PAYLOAD_B64" | base64 -d > /tmp/playbooks.zip
+  if [ ! -f /opt/oci-hpc-playbooks.zip ]; then
+    echo "$(date) B: ERROR missing /opt/oci-hpc-playbooks.zip" >&2
+    exit 1
+  fi
   if command -v unzip >/dev/null 2>&1; then
-    unzip -o -q /tmp/playbooks.zip -d "$ANSIBLE_DIR"
+    unzip -o -q /opt/oci-hpc-playbooks.zip -d "$ANSIBLE_DIR"
   elif command -v python3 >/dev/null 2>&1; then
-    python3 -c "import zipfile; zipfile.ZipFile('/tmp/playbooks.zip','r').extractall('$ANSIBLE_DIR')"
+    python3 -c "import zipfile; zipfile.ZipFile('/opt/oci-hpc-playbooks.zip','r').extractall('$ANSIBLE_DIR')"
   else
     echo "$(date) B: need unzip" >&2
     exit 1
   fi
-  rm -f /tmp/playbooks.zip
   echo "$EXTRA_VARS_B64" | base64 -d > "$ANSIBLE_DIR/extra_vars.yml"
 
   if [ -z "$BM_PRIVATE_IPS_CSV" ]; then
