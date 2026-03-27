@@ -33,7 +33,7 @@ Add this to your `README.md`:
 Replace:
 - `YOUR_USERNAME` – your GitHub username or org
 - `YOUR_REPO` – repository name
-- `main` – branch name (use `master` if that's your default), **or** use a **tag** for a stable, named snapshot, e.g. `https://github.com/YOUR_USERNAME/YOUR_REPO/archive/refs/tags/Kove-RHEL88-OCI.zip` (this repo’s deploy button uses tag **`Kove-RHEL88-OCI`** instead of `master`).
+- `main` or `master` – branch name (this repo’s README deploy button uses **`https://github.com/ncusato/kove-terraform-oci/archive/refs/heads/master.zip`**), **or** use a **tag** for a pinned snapshot, e.g. `https://github.com/YOUR_USERNAME/YOUR_REPO/archive/refs/tags/v1.0.0.zip`.
 
 When clicked, this:
 1. Downloads the archive from the `zipUrl` you set (branch or tag)
