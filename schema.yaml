@@ -25,12 +25,6 @@ variableGroups:
       - existing_private_subnet_id
       - availability_domain
       - cluster_network_availability_domain
-      - bm_imds_ssh_key_bootstrap
-      - create_vnc
-      - bm_capacity_reservation_id
-      - bm_generic_platform_config
-      - bm_boot_volume_size_gbs
-      - cluster_network_create_timeout
 
   - title: "Optional Naming"
     variables:
@@ -155,6 +149,7 @@ variables:
     description: "First-boot script copies instance ssh_authorized_keys from OCI IMDS into opc, cloud-user, and ec2-user if those accounts exist. Enable for Image Builder RHEL images that skip default key injection. Replace BM instances after changing this; user_data runs only at first boot."
     default: true
     required: false
+    visible: false
 
   create_vnc:
     type: boolean
@@ -162,6 +157,7 @@ variables:
     description: "If true, creates an OCI instance console connection per BM node for serial console access via SSH tunnel (uses the stack SSH public key)."
     default: false
     required: false
+    visible: false
 
   cluster_display_name_prefix:
     type: string
@@ -176,6 +172,7 @@ variables:
     title: "BM capacity reservation OCID (optional)"
     description: "Leave empty unless your tenancy requires a capacity reservation for bare metal; required for some BM.Optimized3 launches."
     required: false
+    visible: false
 
   bm_generic_platform_config:
     type: boolean
@@ -183,6 +180,7 @@ variables:
     description: "Adds oci-hpc-style GENERIC_BM platform_config. BM.Optimized3 compute-cluster launches often require false (400 unsupported platform configuration)."
     default: false
     required: true
+    visible: false
 
   bm_boot_volume_size_gbs:
     type: number
@@ -190,6 +188,7 @@ variables:
     description: "Boot volume size for BM instances. Default 120; increase if image requires more space."
     default: 120
     required: false
+    visible: false
 
   cluster_network_create_timeout:
     type: string
@@ -197,6 +196,7 @@ variables:
     description: "Max wait per BM instance create. Empty defaults to 2h. (Kept variable name for existing stacks.)"
     default: ""
     required: false
+    visible: false
 
   run_ansible_from_head:
     type: boolean

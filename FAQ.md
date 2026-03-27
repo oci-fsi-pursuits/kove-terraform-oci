@@ -45,3 +45,7 @@ Bare metal can take **45–90+ minutes** per node in busy regions. Increase **BM
 ## Where is the full variable list and troubleshooting?
 
 See **[STACK-REFERENCE.md](STACK-REFERENCE.md)** and **[OCI-RESOURCE-MANAGER-GUIDE.md](OCI-RESOURCE-MANAGER-GUIDE.md)**.
+
+## Resource Manager still shows old variables (cluster prefix, BM timeouts, HPC agent text, etc.)
+
+The console wizard uses the **`schema.yaml` inside the zip that was used when the stack was created** (or last uploaded). It does **not** auto-sync when the GitHub repo changes. **Create a new stack** from a fresh zip, or **edit the stack** and **replace the Terraform configuration** with an archive built from the current repository. If you use the **Deploy** button with a **Git tag**, that tag must point at a commit that contains the updated `schema.yaml`. See **[OCI-RESOURCE-MANAGER-GUIDE.md](OCI-RESOURCE-MANAGER-GUIDE.md)** (section *When the console UI does not match the latest `schema.yaml`*).

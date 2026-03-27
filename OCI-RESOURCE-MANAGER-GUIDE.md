@@ -40,6 +40,15 @@ When clicked, this:
 2. Opens OCI Resource Manager "Create Stack" with that zip pre-loaded
 3. Shows the UI defined by your `schema.yaml`
 
+### When the console UI does not match the latest `schema.yaml`
+
+Resource Manager **snapshots the Terraform zip** when you create a stack. **Pushing to GitHub does not update stacks that already exist.** If you still see old variables (for example advanced BM or agent options) after changing `schema.yaml`:
+
+1. **Create a new stack** from an up-to-date zip (use **Deploy to Oracle Cloud** again, or **Upload** a zip you built from the current repo), **or**
+2. Open the existing stack → **Edit** → replace or re-upload the **Terraform configuration** so the stack uses a zip that contains the new `schema.yaml` (wording varies slightly by console version).
+
+If you deploy from a **Git tag** zip URL, remember the archive is whatever commit the tag points to; move the tag (or use a new tag) and push so the button downloads a build that includes your UI changes.
+
 ## schema.yaml Structure
 
 This file defines how variables appear in the OCI Console UI.
