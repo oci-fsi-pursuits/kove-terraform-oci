@@ -266,6 +266,30 @@ Console path: **Resource Manager → Stacks → Create stack**.
 - **BM nodes (RHEL), from the head:** `ssh cloud-user@<bm_private_ip>`
 - **Optional helper:** If BM key/user mapping is inconsistent after first boot, run the one-shot head script in **`docs/HEAD-BM-SSH-README.md`** to install passwordless SSH (`id_ed25519`) and maintain a managed BM `/etc/hosts` block on head + BMs.
 
+### RDMA re-auth timer verification
+
+On a BM node, verify RDMA re-auth artifacts:
+
+```bash
+sudo systemctl status oci-cn-auth-refresh.timer
+sudo systemctl list-timers --all | grep oci-cn-auth-refresh
+sudo ls -l /usr/local/bin/oci-cn-auth-refresh.sh
+```
+
+If these are missing, rerun the playbook from head after SSH between head and BMs is fixed:
+
+```bash
+cd /opt/oci-hpc-ansible
+sudo /usr/local/bin/ansible-playbook -i inventory/hosts configure-rhel-rdma.yml --limit bm
+```
+
+Then re-check timer/service and run one manual test:
+
+```bash
+sudo systemctl start oci-cn-auth-refresh.service
+sudo tail -n 100 /var/log/oci-cn-auth-cron.log
+```
+
 **`Permission denied (publickey)` / server refuses your RSA key:** Newer **OpenSSH** often disables **`ssh-rsa`** user keys even though OCI still injects them. This stack (after a **head replace** with current Terraform) adds **`/etc/ssh/sshd_config.d/98-oci-allow-rsa-userkeys.conf`** so your metadata RSA key works again. **Workaround without replacing the VM:** use the Terraform-generated **ED25519** key (same one Ansible uses to reach BMs):
 
 ```bash

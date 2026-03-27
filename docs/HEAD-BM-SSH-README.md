@@ -8,9 +8,14 @@ This guide fixes BM SSH access from the head node when Ansible cannot log in.
 
 `Permission denied (publickey)` means the BM rejected the offered key for that user.
 
+Recommended flow:
+1. Copy the same private key you use to log into the head/bastion to `~/.ssh/head_login_key`.
+2. Run the helper script once.
+3. Use head `~/.ssh/id_ed25519` for ongoing passwordless SSH to BM nodes.
+
 ## 1) Copy the same local key you use to SSH to head
 
-From your **Windows machine** (PowerShell), copy your private key to head as `~/.ssh/head_login_key`.
+From your **Windows machine** (PowerShell), copy your head/bastion login private key to head as `~/.ssh/head_login_key`.
 
 Replace `C:\\Users\\ncusato\\.ssh\\id_rsa` with your actual local key path if different.
 
