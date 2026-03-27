@@ -116,12 +116,52 @@ Copy **`terraform.tfvars.example`** to **`terraform.tfvars`** and fill in values
 
 Start with Oracle’s overview: **[Bare metal servers on OCI with Red Hat Enterprise Linux](https://blogs.oracle.com/cloud-infrastructure/bare-metal-servers-oci-red-hat-enterprise-linux)**.
 
-You need a **RHEL 8.8** disk image in your compartment (**Compute → Images → Import** from Object Storage). Use a **KVM/qcow2** from [Red Hat downloads](https://access.redhat.com/downloads) or build one with **Image Builder** using the blueprint below.
+You need a **RHEL 8.8** disk image in your compartment as a **custom image** (qcow2), then use its **OCID** in **Step 3**. **Do not bake SSH keys into the image** — OCI injects `ssh_authorized_keys` at launch.
+
+#### Option A — Red Hat Image Builder (recommended)
+
+1. **Create a Red Hat account** (if needed): [Red Hat customer portal / account](https://access.redhat.com/).
+
+2. **Open the Red Hat Hybrid Cloud Console:** [https://console.redhat.com/](https://console.redhat.com/). Navigate to **Red Hat Insights** → **Image Builder** (or use the app launcher to find **Image Builder**).
+
+   ![Navigate to Image Builder in the Hybrid Cloud Console](docs/images/rhel-image-builder/deploy-image-navigation.png)
+
+3. **Open Image Builder** and start a new blueprint / image workflow.
+
+4. **Download the blueprint TOML** from this repository: **[`oci_8.8_baremetal.toml`](oci_8.8_baremetal.toml)** (same content as the collapsible reference below). You will import this file in the console.
+
+5. **Import the blueprint** in Image Builder (upload the TOML you downloaded).
+
+   ![Import blueprint in Image Builder](docs/images/rhel-image-builder/import-blueprint.png)
+
+6. **Step through the wizard** and select **Oracle Cloud** as the target deployment / upload target when offered.
+
+   ![Select Oracle Cloud deployment](docs/images/rhel-image-builder/oci-deploy.png)
+
+7. **Review and confirm** the build; start the compose job and wait until it finishes, then download the **qcow2** (or follow Red Hat’s download flow for OCI).
+
+   ![Confirm build in Image Builder](docs/images/rhel-image-builder/confirm-build.png)
+
+8. **Import the image in OCI:** **Compute → Custom images → Import image**. Use the **OCI native import** path (upload from Object Storage or the option your tenancy uses). See [Importing a custom image](https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/importingcustomimage.htm).
+
+   ![OCI console — import custom image](docs/images/rhel-image-builder/import-custom-image.png)
+
+9. **Edit image details** after the image is available: open the custom image → **Actions** → **Edit details**.
+
+   ![Custom image — edit details](docs/images/rhel-image-builder/edit-details.png)
+
+10. **Enable bare metal shape compatibility:** enable **BM.Optimized3.36** (and save) so the image can be used for your cluster nodes.
+
+    ![Enable BM.Optimized3.36 on the custom image](docs/images/rhel-image-builder/enable-optimized3.png)
+
+#### Option B — Manual / CLI blueprint
+
+Use a **KVM/qcow2** from [Red Hat downloads](https://access.redhat.com/downloads) or push the same TOML with **composer-cli** on a subscribed RHEL host, then import to OCI as above.
 
 <details>
-<summary><strong>RHEL 8.8 Image Builder blueprint (copy TOML)</strong></summary>
+<summary><strong>RHEL 8.8 Image Builder blueprint (inline TOML copy)</strong></summary>
 
-Save as `rhel-8.8-baremetal.toml`. **No SSH keys in the image** — OCI injects `ssh_authorized_keys` at launch. Adjust `distro` / kernel NEVRAs if your Image Builder catalog differs.
+Save as `rhel-8.8-baremetal.toml`. **No SSH keys in the image** — OCI injects `ssh_authorized_keys` at launch. Adjust `distro` / kernel NEVRAs if your Image Builder catalog differs. The canonical file in this repo is **[`oci_8.8_baremetal.toml`](oci_8.8_baremetal.toml)**.
 
 ```toml
 name = "rhel-8.8-baremetal"
@@ -204,11 +244,9 @@ group = "root"
 data = "blacklist nvme_tcp\nblacklist nvme_fabrics\ninstall nvme_tcp /bin/false\ninstall nvme_fabrics /bin/false\n"
 ```
 
-**Build (example):** on a subscribed RHEL host — `composer-cli blueprints push rhel-8.8-baremetal.toml` → `composer-cli compose start rhel-8.8-baremetal qcow2` → download when **FINISHED**, then import: [Importing a custom image](https://docs.oracle.com/en-us/iaas/Content/Compute/Tasks/importingcustomimage.htm).
+**Build (example):** on a subscribed RHEL host — `composer-cli blueprints push rhel-8.8-baremetal.toml` → `composer-cli compose start rhel-8.8-baremetal qcow2` → download when **FINISHED**, then import using **Option A** steps 8–10 above.
 
 Use the image **OCID** in **Step 3**.
-
-A matching Image Builder blueprint is also in the repo as **`oci_8.8_baremetal.toml`** (same content as the collapsible example above).
 
 </details>
 
