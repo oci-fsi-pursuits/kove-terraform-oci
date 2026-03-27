@@ -56,13 +56,14 @@ That stack deploys **regular flex VMs** via **`oci_core_instance`** with explici
 | `existing_public_subnet_id` | String | "" | Existing public subnet OCID for head node |
 | `existing_private_subnet_id` | String | "" | Existing private subnet OCID for BM nodes |
 | `availability_domain` | String | "" | Single AD for head + compute cluster + BMs; empty = derive from subnets (private, then public), else first tenancy AD |
+| `vcn_cidr_block` | String | `10.0.0.0/16` | New-VCN only. Public/private subnets are `cidrsubnet(..., 8, 1)` and `(..., 8, 2)` (same pattern as [oci-hpc](https://github.com/oracle-quickstart/oci-hpc) `vcn_subnet`). |
+| `private_subnet_ssh_sources_extras` | String | "" | Comma-separated CIDRs allowed **TCP 22** to BM private IPs in addition to the full VCN CIDR. Use when the bastion is outside this VCN. **Only applied when Terraform creates security lists** (`use_existing_vcn = false`). |
 | `bm_boot_volume_size_gbs` | Number | 120 | BM boot volume size in GB |
 | `cluster_network_create_timeout` | String | "" | Empty = **max(oci-hpc formula, 120m)**. Set e.g. `180m` if still timing out. |
 
-**Note**: When `use_existing_vcn = true`, you must provide all three existing resource IDs. When `use_existing_vcn = false`, a new VCN will be created with:
-- VCN CIDR: 10.0.0.0/16
-- Public subnet CIDR: 10.0.1.0/24
-- Private subnet CIDR: 10.0.2.0/24
+**Note**: When `use_existing_vcn = true`, you must provide all three existing resource IDs. Terraform **does not** change security lists on existing subnets—ensure the **private** subnet’s security list allows **SSH (TCP 22)** from wherever you connect (head/public subnet CIDR, bastion VCN, on-prem, etc.), matching the [oci-hpc](https://github.com/oracle-quickstart/oci-hpc) idea of intra-VCN + optional `ssh_cidr`.
+
+When `use_existing_vcn = false`, Terraform creates security lists like **oci-hpc** `internal-security-list` / `public-security-list`: intra-VCN **all** traffic, **ICMP** path-MTU rules, **SSH from Internet** on the public subnet, and optional **`private_subnet_ssh_sources_extras`** for SSH to BMs from outside the VCN. Default CIDRs: `vcn_cidr_block` (default `10.0.0.0/16`), public `cidrsubnet(vcn,8,1)`, private `cidrsubnet(vcn,8,2)`.
 
 **Cluster network placement** uses **`primary_vnic_subnets` only** (private subnet). OCI **CreateClusterNetwork** for **BM.Optimized3.36** rejects any **`secondary_vnic_subnets`** (`400-InvalidParameter`: *0 secondaryVnicsSubnets* required) ? same idea as [oci-hpc](https://github.com/oracle-quickstart/oci-hpc) `primary_subnet_id`?only placement.
 

@@ -23,6 +23,7 @@ variableGroups:
       - existing_vcn_id
       - existing_public_subnet_id
       - existing_private_subnet_id
+      - private_subnet_ssh_sources_extras
       - availability_domain
 
   - title: "Optional Naming"
@@ -129,6 +130,21 @@ variables:
     required: false
     dependsOn:
       compartmentId: ${compartment_ocid}
+
+  vcn_cidr_block:
+    type: string
+    title: "VCN CIDR (new VCN only)"
+    description: "Used only when Use Existing VCN is false. Default 10.0.0.0/16; public subnet is .1.0/24 and private .2.0/24 inside this block (same pattern as oracle-quickstart/oci-hpc)."
+    default: "10.0.0.0/16"
+    required: false
+    visible: false
+
+  private_subnet_ssh_sources_extras:
+    type: string
+    title: "Extra CIDRs for SSH to bare metal (optional)"
+    description: "Comma-separated CIDRs allowed to reach BM private IPs on TCP 22, in addition to the whole VCN. Use if your bastion is in another VCN, on-prem, or peered network. Example: 10.50.0.0/16"
+    default: ""
+    required: false
 
   use_compute_agent:
     type: boolean

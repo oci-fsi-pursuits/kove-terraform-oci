@@ -16,7 +16,7 @@ Bare metal capacity is **regional and per availability domain (AD)**. Try:
 
 ## How can I check if RDMA is authenticated?
 
-Use the **RDMA re-auth** checks on a **BM node** (SSH from the head) described in **[README.md, Step 5](README.md#step-5-log-in-and-verify)** (systemd timer, script path, rerun playbook from `/opt/oci-hpc-ansible` if needed).
+On the **head**, **`cat ~/README.md`** has a short reminder. Full **RDMA re-auth** checks on a **BM node** (SSH from the head) are in **[README.md, Step 5](README.md#step-5-log-in-and-verify)** (systemd timer, script path, rerun playbook from `/opt/oci-hpc-ansible` if needed).
 
 ## The custom RHEL image fails to launch (404 / not found)
 
@@ -31,6 +31,10 @@ The head only runs Ansible **cloud-init** on **first boot**. If **Run Ansible fr
 - Confirm you are using the **correct user** on the BMs (often **`cloud-user`** for RHEL; set **`instance_ssh_user`** to match your image).
 - Use **`docs/HEAD-BM-SSH-README.md`** for a supported **passwordless SSH** setup from the head.
 - **OpenSSH** may reject **`ssh-rsa`** keys; this stack configures the head to accept common OCI-injected keys—**replace the head** after upgrading the stack if you still see refusals.
+
+## I cannot SSH from a bastion to the bare metal nodes
+
+If the bastion is **in the same VCN** as the stack (e.g. head on the public subnet, BMs on the private subnet), Terraform-created security lists allow **all protocols** from the **VCN CIDR** to the private subnet. If the bastion lives in **another VCN**, **on-premises**, or a **peered** network, set **`private_subnet_ssh_sources_extras`** to that CIDR (comma-separated if needed) when Terraform **creates** the VCN. If you use **Use existing VCN**, add an equivalent **ingress TCP 22** (or broader intra-network) rule on the **private subnet’s security list** yourself. See **[STACK-REFERENCE.md](STACK-REFERENCE.md)** (Network Configuration).
 
 ## Plan/apply times out while creating bare metal
 

@@ -18,6 +18,11 @@ existing_vcn_id            = "ocid1.vcn.oc1.phx.aaaaaaaa..."
 existing_public_subnet_id  = "ocid1.subnet.oc1.phx.aaaaaaaa..."
 existing_private_subnet_id = "ocid1.subnet.oc1.phx.aaaaaaaa..."
 
+# When Terraform creates the VCN: default 10.0.0.0/16 → public 10.0.1.0/24, private 10.0.2.0/24 (oci-hpc-style).
+# vcn_cidr_block = "10.0.0.0/16"
+# Bastion/jump host OUTSIDE that VCN? Allow SSH to BM private IPs from those CIDRs (comma-separated):
+# private_subnet_ssh_sources_extras = "10.50.0.0/16"
+
 # Optional: one AD for entire cluster (e.g. "pILZ:PHX-AD-2"). Empty = derive from subnets.
 availability_domain = ""
 # oci-hpc parity: default off in this stack (custom RHEL + Ansible for RDMA). Set true only if you need Oracle HPC compute agent plugins.

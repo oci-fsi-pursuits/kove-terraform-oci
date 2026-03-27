@@ -74,6 +74,23 @@ data "oci_core_images" "ol8_head" {
 }
 
 locals {
+  # Extra CIDRs that may SSH to BM private IPs (bastion outside VCN, peering, etc.)
+  private_subnet_ssh_extra_cidrs = compact([for s in split(",", var.private_subnet_ssh_sources_extras) : trimspace(s) if trimspace(s) != ""])
+  public_subnet_cidr             = cidrsubnet(var.vcn_cidr_block, 8, 1)
+  private_subnet_cidr            = cidrsubnet(var.vcn_cidr_block, 8, 2)
+  # Short on-box guide (kept small for OCI instance metadata 32 KiB limit)
+  head_home_readme_markdown = <<-EOT
+# Kove cluster (head node)
+
+**SSH to BMs:** `ssh cloud-user@<BM_private_ip>` (use stack Outputs for IPs; user may be `opc` on some images).
+
+**Passwordless SSH from this head:** Git repo `docs/HEAD-BM-SSH-README.md` or `scripts/setup_bm_passwordless_ssh.sh`.
+
+**RDMA on a BM:** `sudo systemctl status oci-cn-auth-refresh.timer`. If missing: `cd /opt/oci-hpc-ansible` then `sudo /usr/local/bin/ansible-playbook -i inventory/hosts configure-rhel-rdma.yml --limit bm`.
+
+**Bootstrap log:** `sudo tail -200 /var/log/oci-hpc-ansible-bootstrap.log`
+EOT
+
   custom_name_prefix_effective = trimspace(var.custom_name_prefix) != "" ? trimspace(var.custom_name_prefix) : trimspace(var.cluster_display_name_prefix)
   naming_prefix                = var.enable_custom_names ? local.custom_name_prefix_effective : "cluster"
   # Keep static defaults unless explicitly toggled on.
@@ -98,7 +115,7 @@ locals {
 # Create VCN only when use_existing_vcn = false
 resource "oci_core_virtual_network" "this" {
   count          = var.use_existing_vcn ? 0 : 1
-  cidr_block     = "10.0.0.0/16"
+  cidr_block     = var.vcn_cidr_block
   compartment_id = var.compartment_ocid
   display_name   = local.vcn_name
   # OCI VCN dns_label: alphanumeric, max 15 chars (sanitize prefix; avoid regex* functions for older TF quirks).
@@ -150,7 +167,7 @@ resource "oci_core_route_table" "private" {
   }
 }
 
-# Security list for public subnet: SSH from internet (adjust as needed)
+# Public subnet SL — aligned with oracle-quickstart/oci-hpc public-security-list: intra-VCN + SSH from Internet + ICMP.
 resource "oci_core_security_list" "public" {
   count          = var.use_existing_vcn ? 0 : 1
   compartment_id = var.compartment_ocid
@@ -163,6 +180,11 @@ resource "oci_core_security_list" "public" {
   }
 
   ingress_security_rules {
+    protocol = "all"
+    source   = var.vcn_cidr_block
+  }
+
+  ingress_security_rules {
     protocol = "6" # TCP
     source   = "0.0.0.0/0"
 
@@ -172,7 +194,25 @@ resource "oci_core_security_list" "public" {
     }
   }
 
-  # Allow ICMP (ping) from anywhere (optional)
+  ingress_security_rules {
+    protocol = "1"
+    source   = "0.0.0.0/0"
+
+    icmp_options {
+      type = 3
+      code = 4
+    }
+  }
+
+  ingress_security_rules {
+    protocol = "1"
+    source   = var.vcn_cidr_block
+
+    icmp_options {
+      type = 3
+    }
+  }
+
   ingress_security_rules {
     protocol = "1"
     source   = "0.0.0.0/0"
@@ -184,7 +224,7 @@ resource "oci_core_security_list" "public" {
   }
 }
 
-# Security list for private subnet: only intra-VCN (and you can add more)
+# Private subnet SL — oci-hpc internal-security-list pattern: full intra-VCN + ICMP path-MTU + optional extra SSH sources.
 resource "oci_core_security_list" "private" {
   count          = var.use_existing_vcn ? 0 : 1
   compartment_id = var.compartment_ocid
@@ -198,7 +238,39 @@ resource "oci_core_security_list" "private" {
 
   ingress_security_rules {
     protocol = "all"
-    source   = "10.0.0.0/16"
+    source   = var.vcn_cidr_block
+  }
+
+  dynamic "ingress_security_rules" {
+    for_each = local.private_subnet_ssh_extra_cidrs
+    content {
+      protocol = "6"
+      source   = ingress_security_rules.value
+
+      tcp_options {
+        min = 22
+        max = 22
+      }
+    }
+  }
+
+  ingress_security_rules {
+    protocol = "1"
+    source   = "0.0.0.0/0"
+
+    icmp_options {
+      type = 3
+      code = 4
+    }
+  }
+
+  ingress_security_rules {
+    protocol = "1"
+    source   = var.vcn_cidr_block
+
+    icmp_options {
+      type = 3
+    }
   }
 }
 
@@ -208,7 +280,7 @@ resource "oci_core_subnet" "public" {
   compartment_id             = var.compartment_ocid
   display_name               = local.public_subnet_name
   vcn_id                     = oci_core_virtual_network.this[0].id
-  cidr_block                 = "10.0.1.0/24"
+  cidr_block                 = local.public_subnet_cidr
   route_table_id             = oci_core_route_table.public[0].id
   security_list_ids          = [oci_core_security_list.public[0].id]
   prohibit_public_ip_on_vnic = false
@@ -221,7 +293,7 @@ resource "oci_core_subnet" "private" {
   compartment_id             = var.compartment_ocid
   display_name               = local.private_subnet_name
   vcn_id                     = oci_core_virtual_network.this[0].id
-  cidr_block                 = "10.0.2.0/24"
+  cidr_block                 = local.private_subnet_cidr
   route_table_id             = oci_core_route_table.private[0].id
   security_list_ids          = [oci_core_security_list.private[0].id]
   prohibit_public_ip_on_vnic = true
@@ -342,6 +414,7 @@ resource "oci_core_instance" "head_node" {
         authorized_keys_b64    = base64encode(local.cluster_ssh_authorized_keys)
         head_ssh_user          = trimspace(var.head_node_ssh_user) != "" ? trimspace(var.head_node_ssh_user) : "opc"
         playbooks_zip_b64      = var.run_ansible_from_head ? filebase64(data.archive_file.playbooks[0].output_path) : ""
+        head_home_readme_b64   = base64encode(replace(replace(local.head_home_readme_markdown, "\r\n", "\n"), "\r", "\n"))
       }), "\r\n", "\n"), "\r", "\n"))
     }
   )

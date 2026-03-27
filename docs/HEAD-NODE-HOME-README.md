@@ -1,28 +1,11 @@
-# Kove stack — quick notes (head node)
+# Kove cluster (head node)
 
-Reference copy in the repo only (not written to the head automatically—OCI instance **metadata** is capped at 32 KiB). Full documentation: **README.md**, **FAQ.md**, **STACK-REFERENCE.md**.
+A short copy of this text is written to **`~/README.md`** on the head at first boot (same content as the Terraform `head_home_readme_markdown` local).
 
-## RDMA authentication on bare metal nodes
+**SSH to BMs:** `ssh cloud-user@<BM_private_ip>` (stack Outputs; user may be `opc` on some images).
 
-Ansible from the head configures RHEL-side RDMA auth on the BMs. To confirm **OCI CN RDMA re-authentication** is in place **on a BM node** (SSH from head as `cloud-user` or your `instance_ssh_user`):
+**Passwordless SSH from this head:** **`docs/HEAD-BM-SSH-README.md`** or **`scripts/setup_bm_passwordless_ssh.sh`** in the repo.
 
-```bash
-sudo systemctl status oci-cn-auth-refresh.timer
-sudo systemctl list-timers --all | grep oci-cn-auth-refresh
-sudo ls -l /usr/local/bin/oci-cn-auth-refresh.sh
-```
+**RDMA on a BM:** `sudo systemctl status oci-cn-auth-refresh.timer`. If missing: `cd /opt/oci-hpc-ansible` then `sudo /usr/local/bin/ansible-playbook -i inventory/hosts configure-rhel-rdma.yml --limit bm`.
 
-If the timer or script is missing, fix SSH from head to the BMs, then from the head run:
-
-```bash
-cd /opt/oci-hpc-ansible
-sudo /usr/local/bin/ansible-playbook -i inventory/hosts configure-rhel-rdma.yml --limit bm
-```
-
-Logs (if present): `/var/log/oci-cn-auth-cron.log`
-
-## Related
-
-- **`docs/HEAD-BM-SSH-README.md`** (repo): passwordless SSH from head to BMs  
-- **`/var/log/oci-hpc-ansible-bootstrap.log`**: Ansible-from-head first boot  
-- **`/opt/oci-hpc-ansible`**: playbooks when **Run Ansible from head** was enabled at first boot  
+**Bootstrap log:** `sudo tail -200 /var/log/oci-hpc-ansible-bootstrap.log`

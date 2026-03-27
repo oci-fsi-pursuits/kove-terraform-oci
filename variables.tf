@@ -99,6 +99,18 @@ variable "bm_pool_ready_wait" {
 # Networking control
 # -------------------------------------------------------------------
 
+variable "vcn_cidr_block" {
+  type        = string
+  description = "CIDR for the VCN when Terraform creates it (default 10.0.0.0/16). Public subnet = first /24, private = second /24 under this block (cidrsubnet). Security lists use this CIDR for intra-VCN traffic (same idea as oracle-quickstart/oci-hpc)."
+  default     = "10.0.0.0/16"
+}
+
+variable "private_subnet_ssh_sources_extras" {
+  type        = string
+  description = "Optional comma-separated CIDRs allowed to reach bare metal private IPs on TCP 22, in addition to the whole VCN CIDR. Use when your bastion or jump host is outside this VCN (different VCN, on-prem, etc.). Example: 10.50.0.0/16,172.31.0.0/16"
+  default     = ""
+}
+
 variable "use_existing_vcn" {
   type        = bool
   description = "If true, use existing VCN and subnets; if false, create new networking."

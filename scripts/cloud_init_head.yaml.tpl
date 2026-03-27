@@ -20,6 +20,11 @@ write_files:
       chmod 600 "/home/$$U/.ssh/authorized_keys"
       chown "$$U:$$U" "/home/$$U/.ssh/authorized_keys"
     permissions: '0755'
+  - path: /home/${head_ssh_user}/README.md
+    content: ${head_home_readme_b64}
+    encoding: b64
+    owner: ${head_ssh_user}:${head_ssh_user}
+    permissions: '0644'
 %{ if run_bootstrap ~}
   # Playbooks zip as its own file avoids embedding ~9KB base64 inside the bootstrap script (which is itself base64 in user_data — that double chain blew past OCI's 32KiB metadata limit).
   - path: /opt/oci-hpc-playbooks.zip
